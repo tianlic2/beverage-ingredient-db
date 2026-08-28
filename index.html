@@ -570,6 +570,19 @@
         .compliance-card-header p {
             font-size: 0.82rem; color: var(--text-tertiary);
         }
+        .compliance-chat-tip {
+            margin-top: 16px; padding: 10px 14px;
+            background: rgba(79, 70, 229, 0.07);
+            border: 1px solid rgba(79, 70, 229, 0.22);
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem; line-height: 1.6; text-align: left;
+            color: var(--text-secondary);
+        }
+        .compliance-chat-link {
+            color: var(--accent); font-weight: 600; cursor: pointer;
+            text-decoration: underline; text-underline-offset: 2px;
+        }
+        .compliance-chat-link:hover { color: var(--accent-hover); }
         .compliance-row {
             display: flex; gap: 8px; align-items: flex-end; margin-bottom: 10px;
             padding: 12px; background: var(--bg); border-radius: var(--radius-sm);
@@ -1019,6 +1032,9 @@
                         <div class="compliance-card-header">
                             <h2>⚖ 添加剂合规检测</h2>
                             <p>输入食品添加剂名称及使用量，自动对照 GB 2760 标准检测合规性</p>
+                            <div class="compliance-chat-tip">
+                                💬 也可以直接和<span class="compliance-chat-link" onclick="closeCompliance()">聊天机器人</span>对话，询问某物质的添加限量，或查询是否超标。
+                            </div>
                         </div>
                         <div id="complianceRows">
                             <div class="compliance-row">
