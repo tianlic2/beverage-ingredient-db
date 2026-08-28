@@ -1,0 +1,5 @@
+.DS_Store
+# 指向项目外部的测试文件软链接，不入库
+test-index.html
+# 本地 Claude Code 配置，不入库
+.claude/
