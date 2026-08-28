@@ -1,0 +1,2509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>酒饮产品智能研发平台</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* ========== 设计令牌 ========== */
+        :root {
+            --bg: #FAFAFA;
+            --surface: #FFFFFF;
+            --border: #E5E7EB;
+            --text: #1A1A2E;
+            --text-secondary: #6B7280;
+            --text-tertiary: #9CA3AF;
+            --accent: #4F46E5;
+            --accent-hover: #4338CA;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
+            --shadow-md: 0 4px 16px rgba(0,0,0,.06);
+            --shadow-lg: 0 12px 40px rgba(0,0,0,.08);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        [data-theme="yaoshi"] { --cat-color: #E11D48; --cat-bg: #FFF1F2; }
+        [data-theme="tianjia"] { --cat-color: #4F46E5; --cat-bg: #EEF2FF; }
+        [data-theme="xinwu"] { --cat-color: #0D9488; --cat-bg: #F0FDFA; }
+        [data-theme="compound"] { --cat-color: #D97706; --cat-bg: #FFFBEB; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            line-height: 1.6;
+        }
+
+        /* ========== 登录页 ========== */
+        .login-overlay {
+            position: fixed; inset: 0;
+            background: #F5F3FF;
+            z-index: 9999;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .login-overlay.hidden { display: none; }
+        .login-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 48px 40px 40px;
+            width: 400px; max-width: 90vw;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+        }
+        .login-logo {
+            text-align: center; margin-bottom: 20px;
+            width: 200px; height: 64px;
+            margin-left: auto; margin-right: auto;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .login-logo img {
+            width: 100%; height: 100%;
+            object-fit: contain;
+        }
+        .login-title {
+            text-align: center; font-size: 1.3rem; font-weight: 600; color: var(--text); margin-bottom: 4px;
+            letter-spacing: -0.01em;
+        }
+        .login-subtitle {
+            text-align: center; font-size: 0.85rem; color: var(--text-tertiary); margin-bottom: 32px;
+        }
+        .login-field { margin-bottom: 18px; }
+        .login-field label {
+            display: block; font-size: 0.8rem; font-weight: 500; color: var(--text-secondary);
+            margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .login-field input {
+            width: 100%; padding: 11px 14px;
+            border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+            font-size: 0.95rem; color: var(--text); outline: none;
+            transition: var(--transition); background: var(--bg);
+        }
+        .login-field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,.1); background: var(--surface); }
+        .login-btn {
+            width: 100%; padding: 12px; background: var(--accent); color: #fff;
+            border: none; border-radius: var(--radius-sm); font-size: 0.95rem; font-weight: 600;
+            cursor: pointer; margin-top: 6px; transition: var(--transition); letter-spacing: 0.02em;
+        }
+        .login-btn:hover { background: var(--accent-hover); }
+        .login-error { text-align: center; color: #E11D48; font-size: 0.82rem; margin-top: 12px; min-height: 18px; }
+        .login-footer { text-align: center; margin-top: 20px; font-size: 0.72rem; color: var(--text-tertiary); }
+        .login-loading { display: none; text-align: center; margin-top: 14px; }
+        .login-loading.show { display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .login-spinner { width: 18px; height: 18px; border: 2px solid #E0E7FF; border-top-color: var(--accent); border-radius: 50%; animation: loginSpin 0.7s linear infinite; }
+        @keyframes loginSpin { to { transform: rotate(360deg); } }
+        .login-loading-text { color: var(--accent); font-size: 0.88rem; font-weight: 500; }
+        .login-btn.loading { pointer-events: none; opacity: 0.7; }
+
+        /* ========== 布局 ========== */
+        .app-layout { display: flex; min-height: 100vh; }
+
+        /* ========== 侧边栏 ========== */
+        .sidebar {
+            width: 240px; min-width: 240px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex; flex-direction: column;
+            overflow-y: auto; overflow-x: hidden;
+            position: sticky; top: 0; height: 100vh;
+            z-index: 60;
+            user-select: none;
+        }
+        .sidebar-header {
+            padding: 18px 16px 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .sidebar-header-logo {
+            width: 28px; height: 28px;
+            display: flex; align-items: center; flex-shrink: 0;
+        }
+        .sidebar-header-logo img {
+            width: 100%; height: 100%; object-fit: contain;
+        }
+        .sidebar-header-title {
+            font-size: 0.82rem; font-weight: 700; color: var(--text);
+            letter-spacing: -0.01em; line-height: 1.2;
+        }
+        .sidebar-nav {
+            flex: 1; padding: 8px 0;
+            overflow-y: auto;
+        }
+        .sidebar-section {
+            margin-bottom: 2px;
+        }
+        .sidebar-item {
+            display: flex; align-items: center; gap: 6px;
+            padding: 9px 16px;
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            position: relative;
+            white-space: nowrap;
+        }
+        .sidebar-item:hover { background: var(--bg); color: var(--text); }
+        .sidebar-item.active { color: var(--accent); background: #EEF2FF; font-weight: 600; }
+        .sidebar-item .label { flex: 1; }
+        .sidebar-item .badge {
+            font-size: 0.7rem; color: var(--text-tertiary);
+            background: var(--bg); padding: 1px 7px; border-radius: 10px;
+            font-weight: 500;
+        }
+        .sidebar-item .arrow {
+            font-size: 0.6rem; transition: transform 0.2s ease;
+            width: 14px; text-align: center; flex-shrink: 0;
+            color: var(--text-tertiary);
+        }
+        .sidebar-item .arrow.open { transform: rotate(90deg); }
+
+        .sidebar-sub {
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.25s ease;
+        }
+        .sidebar-sub.open { max-height: 300px; }
+        .sidebar-sub .sidebar-item { padding-left: 44px; font-size: 0.82rem; }
+        .sidebar-sub .sidebar-sub .sidebar-item { padding-left: 60px; font-size: 0.8rem; }
+
+        .sidebar-divider {
+            height: 1px; background: var(--border);
+            margin: 6px 12px;
+        }
+
+        .sidebar-toggle {
+            display: none;
+            position: fixed; top: 16px; left: 16px; z-index: 70;
+            width: 36px; height: 36px; border-radius: 8px;
+            background: var(--surface); border: 1px solid var(--border);
+            cursor: pointer; font-size: 1rem; color: var(--text-secondary);
+            align-items: center; justify-content: center;
+            box-shadow: var(--shadow-sm);
+        }
+
+        body.dark .sidebar-item.active { background: #1E3A5F; color: #93C5FD; }
+        body.dark .sidebar-item .badge { background: #334155; }
+
+        /* ========== 主内容区 ========== */
+        .main-content {
+            flex: 1;
+            min-height: 100vh; display: flex; flex-direction: column;
+            min-width: 0;
+        }
+
+        /* ========== 首页 / 聊天 ========== */
+        .home-page {
+            flex: 1; display: flex; flex-direction: column;
+            min-height: 100vh; background: var(--bg);
+        }
+        .home-header {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 24px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            z-index: 50;
+            flex-shrink: 0;
+        }
+        .home-header-title {
+            font-size: 0.9rem; font-weight: 600; color: var(--text-secondary);
+            letter-spacing: -0.01em;
+        }
+        .home-header button:hover {
+            background: var(--bg) !important;
+        }
+
+        /* ========== 聊天区域 ========== */
+        .chat-container {
+            flex: 1; display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+        .chat-messages {
+            flex: 1; overflow-y: auto;
+            padding: 24px;
+            display: flex; flex-direction: column; gap: 16px;
+        }
+        .chat-welcome {
+            text-align: center; padding: 60px 20px 40px;
+            color: var(--text-secondary);
+        }
+        .chat-welcome h2 {
+            font-size: 1.4rem; font-weight: 600; color: var(--text);
+            margin-bottom: 6px; letter-spacing: -0.01em;
+        }
+        .chat-welcome p {
+            font-size: 0.9rem; color: var(--text-tertiary);
+            max-width: 400px; margin: 0 auto; line-height: 1.6;
+        }
+        .chat-message {
+            display: flex; gap: 10px;
+            max-width: 80%; animation: fadeIn 0.3s ease;
+        }
+        .chat-message.user {
+            align-self: flex-end; flex-direction: row-reverse;
+        }
+        .chat-message.assistant {
+            align-self: flex-start;
+        }
+        .chat-avatar {
+            width: 34px; height: 34px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem; flex-shrink: 0;
+        }
+        .chat-message.user .chat-avatar {
+            background: var(--accent); color: #fff;
+        }
+        .chat-message.assistant .chat-avatar {
+            background: #EEF2FF; color: var(--accent);
+        }
+        .chat-bubble {
+            padding: 10px 16px; border-radius: 14px;
+            font-size: 0.88rem; line-height: 1.55;
+            word-break: break-word;
+        }
+        .chat-message.user .chat-bubble {
+            background: var(--accent); color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-message.assistant .chat-bubble {
+            background: var(--surface); color: var(--text);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
+        }
+        .chat-message .chat-time {
+            font-size: 0.7rem; color: var(--text-tertiary);
+            margin-top: 4px;
+        }
+        .chat-input-area {
+            padding: 16px 24px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            display: flex; gap: 10px; align-items: center;
+        }
+        .chat-input {
+            flex: 1; padding: 11px 16px;
+            font-size: 0.9rem; border: 1.5px solid var(--border);
+            border-radius: 24px; background: var(--bg); outline: none;
+            transition: var(--transition); font-family: inherit;
+        }
+        .chat-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(79,70,229,.08);
+            background: var(--surface);
+        }
+        .chat-input::placeholder { color: var(--text-tertiary); }
+        .chat-send-btn {
+            width: 40px; height: 40px; border-radius: 50%;
+            border: none; background: var(--accent); color: #fff;
+            font-size: 1rem; cursor: pointer; display: flex;
+            align-items: center; justify-content: center;
+            transition: var(--transition); flex-shrink: 0;
+        }
+        .chat-send-btn:hover { background: var(--accent-hover); }
+        .chat-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .chat-substance-links {
+            display: flex; flex-wrap: wrap; gap: 6px;
+            margin-top: 10px;
+        }
+        .chat-substance-chip {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 5px 12px;
+            background: var(--bg); border: 1px solid var(--border);
+            border-radius: 16px; font-size: 0.8rem;
+            color: var(--accent); cursor: pointer;
+            transition: var(--transition); font-weight: 500;
+        }
+        .chat-substance-chip:hover {
+            background: #EEF2FF; border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+        .chat-substance-chip .chip-source {
+            font-size: 0.7rem; opacity: 0.7; font-weight: 400;
+        }
+        .chat-substance-chip .chip-arrow { font-size: 0.7rem; }
+        .chat-substance-chip[data-theme="yaoshi"] { color: #E11D48; }
+        .chat-substance-chip[data-theme="yaoshi"]:hover { background: #FFF1F2; border-color: #E11D48; }
+        .chat-substance-chip[data-theme="tianjia"] { color: #4F46E5; }
+        .chat-substance-chip[data-theme="tianjia"]:hover { background: #EEF2FF; border-color: #4F46E5; }
+        .chat-substance-chip[data-theme="xinwu"] { color: #0D9488; }
+        .chat-substance-chip[data-theme="xinwu"]:hover { background: #F0FDFA; border-color: #0D9488; }
+        .chat-substance-chip[data-theme="compound"] { color: #D97706; }
+        .chat-substance-chip[data-theme="compound"]:hover { background: #FFFBEB; border-color: #D97706; }
+        body.dark .chat-substance-chip { background: #334155; }
+        .chat-typing {
+            display: none; align-items: center; gap: 4px;
+            padding: 8px 0;
+        }
+        .chat-typing .dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--text-tertiary);
+            animation: typingBounce 1.4s ease-in-out infinite;
+        }
+        .chat-typing .dot:nth-child(2) { animation-delay: 0.2s; }
+        .chat-typing .dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-6px); opacity: 1; }
+        }
+
+        body.dark .chat-message.assistant .chat-bubble { background: #1E293B; border-color: #334155; }
+        body.dark .chat-message.assistant .chat-avatar { background: #1E3A5F; }
+        body.dark .chat-input { background: #334155; }
+        body.dark .chat-input:focus { background: #1E293B; }
+
+        /* ========== 页面状态 ========== */
+        .page-state { display: none !important; }
+        .page-state.active { display: flex !important; }
+        .home-page { display: none !important; flex-direction: column; }
+        .home-page.active { display: flex !important; }
+        .result-page { display: none !important; flex-direction: column; min-height: 100vh; }
+        .result-page.active { display: flex !important; }
+        .browse-page { display: none !important; flex-direction: column; min-height: 100vh; }
+        .browse-page.active { display: flex !important; }
+
+        /* ========== 顶部栏 ========== */
+        .top-bar {
+            background: var(--surface); padding: 14px 24px;
+            display: flex; align-items: center; gap: 16px;
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 50;
+        }
+        .back-btn {
+            display: flex; align-items: center; gap: 5px;
+            padding: 7px 12px; background: var(--bg); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); color: var(--text-secondary);
+            font-size: 0.82rem; cursor: pointer; transition: var(--transition);
+        }
+        .back-btn:hover { background: #F3F4F6; color: var(--text); }
+        .page-title { font-size: 0.95rem; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
+        .top-search-container { flex: 1; position: relative; max-width: 400px; }
+        .top-search-box {
+            width: 100%; padding: 9px 40px 9px 14px;
+            font-size: 0.88rem; border: 1.5px solid var(--border);
+            border-radius: var(--radius-md); background: var(--bg); outline: none;
+            transition: var(--transition);
+        }
+        .top-search-box:focus { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px rgba(79,70,229,.06); }
+        .top-search-box::placeholder { color: var(--text-tertiary); }
+        .top-search-btn {
+            position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+            width: 30px; height: 30px; border: none; border-radius: 50%;
+            background: transparent; color: var(--text-tertiary); font-size: 0.8rem;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .top-search-btn:hover { color: var(--accent); }
+        .search-result-count { font-size: 0.82rem; color: var(--text-tertiary); margin-left: auto; }
+
+        /* ========== 内容区 ========== */
+        .content-area { flex: 1; padding: 24px; }
+
+        /* ========== 筛选器 ========== */
+        .filters-card {
+            background: var(--surface); border-radius: var(--radius-md);
+            padding: 18px 20px; margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+        .filter-group { margin-bottom: 14px; }
+        .filter-group:last-child { margin-bottom: 0; }
+        .filter-group-title {
+            font-size: 0.78rem; font-weight: 600; color: var(--text-tertiary);
+            margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .filter-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .filter-tag {
+            padding: 5px 12px; background: var(--bg); border-radius: 20px;
+            font-size: 0.8rem; cursor: pointer; border: 1.5px solid transparent;
+            color: var(--text-secondary); transition: var(--transition);
+        }
+        .filter-tag:hover { background: #F3F4F6; }
+        .filter-tag.active { background: var(--surface); border-color: var(--accent); color: var(--accent); font-weight: 500; }
+        .filter-tags[data-theme="yaoshi"] .filter-tag.active { border-color: #E11D48; color: #E11D48; }
+        .filter-tags[data-theme="xinwu"] .filter-tag.active { border-color: #0D9488; color: #0D9488; }
+
+        /* ========== 结果卡片 ========== */
+        .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+        .result-card {
+            background: var(--surface); border-radius: var(--radius-md);
+            padding: 20px 20px 20px 24px;
+            cursor: pointer; position: relative;
+            border: 1px solid var(--border);
+            transition: var(--transition);
+            overflow: hidden;
+        }
+        .result-card::before {
+            content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+            width: 3px; transition: var(--transition);
+        }
+        .result-card[data-theme]::before { background: var(--cat-color); }
+        .result-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); border-color: transparent; }
+        .result-card:hover::before { width: 4px; }
+
+        .card-source-tag {
+            position: absolute; top: 14px; right: 16px;
+            padding: 2px 8px; border-radius: 4px;
+            font-size: 0.68rem; font-weight: 600; letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+        .result-card[data-theme] .card-source-tag { background: var(--cat-bg); color: var(--cat-color); }
+
+        .card-title {
+            font-size: 1rem; font-weight: 600; color: var(--text);
+            margin-bottom: 2px; padding-right: 80px; letter-spacing: -0.01em;
+        }
+        .card-title-zh {
+            font-size: 0.85rem; font-weight: 500; color: var(--cat-color);
+            margin-bottom: 4px; padding-right: 80px;
+        }
+        .card-subtitle { font-size: 0.8rem; color: var(--text-tertiary); margin-bottom: 8px; font-style: italic; }
+        .card-content { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+
+        .card-tag {
+            display: inline-block; padding: 2px 8px; background: var(--bg);
+            border-radius: 4px; font-size: 0.72rem; color: var(--text-tertiary);
+            margin-top: 8px; margin-right: 4px;
+        }
+
+        /* ========== 空状态 ========== */
+        .no-results { text-align: center; padding: 80px 20px; color: var(--text-tertiary); }
+        .no-results-text { font-size: 1rem; }
+
+        /* ========== 加载 ========== */
+        .loading-spinner { text-align: center; padding: 80px 20px; }
+        .loading-spinner .spinner {
+            width: 32px; height: 32px; margin: 0 auto 14px;
+            border: 2px solid var(--border); border-top-color: var(--accent);
+            border-radius: 50%; animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-spinner p { color: var(--text-tertiary); font-size: 0.85rem; }
+
+        /* ========== 弹窗 ========== */
+        .modal-overlay {
+            display: flex; position: fixed; inset: 0;
+            background: rgba(15,23,42,0); backdrop-filter: blur(0px);
+            z-index: 1000; justify-content: center; align-items: center; padding: 20px;
+            opacity: 0; visibility: hidden; pointer-events: none;
+            transition: opacity 0.25s ease, visibility 0.25s ease, background 0.3s ease, backdrop-filter 0.3s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1; visibility: visible; pointer-events: auto;
+            background: rgba(15,23,42,.4); backdrop-filter: blur(4px);
+        }
+        @keyframes modalSpring {
+            0%   { transform: translateY(40px) scale(0.92); opacity: 0; }
+            60%  { transform: translateY(-4px) scale(1.01); opacity: 1; }
+            80%  { transform: translateY(2px) scale(0.995); }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .modal-overlay .modal {
+            opacity: 0; transform: translateY(40px) scale(0.92);
+        }
+        .modal-overlay.active .modal {
+            animation: modalSpring 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .modal {
+            background: var(--surface); border-radius: var(--radius-lg);
+            max-width: 640px; width: 100%; max-height: 85vh;
+            overflow-y: auto; box-shadow: var(--shadow-lg); border: 1px solid var(--border);
+        }
+        .modal-header {
+            padding: 20px 24px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; background: var(--surface); z-index: 10;
+        }
+        .modal-header::before {
+            content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+        }
+        .modal-overlay[data-theme] .modal-header::before { background: var(--cat-color); }
+        .modal-title { font-size: 1.15rem; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
+        .modal-close {
+            width: 32px; height: 32px; border-radius: 50%; border: none;
+            background: var(--bg); font-size: 1rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-tertiary); transition: var(--transition);
+        }
+        .modal-close:hover { background: #F3F4F6; color: var(--text); }
+        .modal-body { padding: 24px; }
+
+        .detail-table { width: 100%; border-collapse: collapse; }
+        .detail-table tr { border-bottom: 1px solid var(--border); }
+        .detail-table tr:last-child { border-bottom: none; }
+        .detail-table td { padding: 11px 0; vertical-align: top; }
+        .detail-table .label { width: 110px; font-size: 0.8rem; color: var(--text-tertiary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.03em; }
+        .detail-table .value { font-size: 0.9rem; color: var(--text); line-height: 1.6; }
+        .detail-divider { height: 1px; background: var(--border); margin: 14px 0; }
+
+        .modal-source-badge {
+            display: inline-block; padding: 4px 10px; border-radius: 4px;
+            font-size: 0.75rem; font-weight: 600; margin-bottom: 18px;
+            letter-spacing: 0.04em; text-transform: uppercase;
+        }
+        .modal-overlay[data-theme] .modal-source-badge { background: var(--cat-bg); color: var(--cat-color); }
+
+        /* ========== 搜索高亮 ========== */
+        .highlight { background: #FEF08A; border-radius: 2px; padding: 0 1px; }
+
+        /* ========== 合规检测页 ========== */
+        .compliance-page { display: none !important; flex-direction: column; min-height: 100vh; }
+        .compliance-page.active { display: flex !important; }
+        .compliance-page .content-area {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            padding: 40px 24px;
+        }
+        .compliance-card {
+            background: var(--surface); border-radius: var(--radius-lg);
+            border: 1px solid var(--border); box-shadow: var(--shadow-md);
+            padding: 36px 32px 32px; width: 100%; max-width: 560px;
+        }
+        .compliance-card-header {
+            text-align: center; margin-bottom: 28px;
+        }
+        .compliance-card-header h2 {
+            font-size: 1.25rem; font-weight: 700; color: var(--text);
+            margin-bottom: 6px; letter-spacing: -0.01em;
+        }
+        .compliance-card-header p {
+            font-size: 0.82rem; color: var(--text-tertiary);
+        }
+        .compliance-row {
+            display: flex; gap: 8px; align-items: flex-end; margin-bottom: 10px;
+            padding: 12px; background: var(--bg); border-radius: var(--radius-sm);
+            position: relative;
+        }
+        .compliance-row .field { display: flex; flex-direction: column; gap: 4px; }
+        .compliance-row .field-name { flex: 3; }
+        .compliance-row .field-amount { flex: 1.5; }
+        .compliance-row .field-unit { flex: 1; min-width: 60px; }
+        .compliance-row label { font-size: 0.7rem; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: .03em; }
+        .compliance-row input, .compliance-row select {
+            padding: 8px 10px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+            font-size: 0.85rem; background: var(--surface); outline: none; transition: var(--transition);
+        }
+        .compliance-row input:focus, .compliance-row select:focus { border-color: var(--accent); }
+        .compliance-row .btn-remove {
+            position: absolute; top: 4px; right: 8px;
+            background: none; border: none; color: var(--text-tertiary);
+            cursor: pointer; font-size: 1rem; padding: 2px 6px;
+        }
+        .compliance-row .btn-remove:hover { color: #E11D48; }
+        .compliance-add {
+            width: 100%; padding: 10px; border: 1.5px dashed var(--border);
+            border-radius: var(--radius-sm); background: none; cursor: pointer;
+            color: var(--text-tertiary); font-size: 0.85rem; transition: var(--transition);
+        }
+        .compliance-add:hover { border-color: var(--accent); color: var(--accent); }
+        .compliance-check {
+            width: 100%; padding: 11px; margin-top: 14px;
+            background: var(--accent); color: #fff; border: none;
+            border-radius: var(--radius-sm); font-size: 0.9rem; font-weight: 600;
+            cursor: pointer; transition: var(--transition);
+        }
+        .compliance-check:hover { background: var(--accent-hover); }
+        .compliance-result { margin-top: 20px; }
+        .compliance-result-item {
+            padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 6px;
+            font-size: 0.85rem; display: flex; align-items: center; gap: 10px;
+        }
+        .compliance-result-item.pass { background: #F0FDF4; color: #166534; }
+        .compliance-result-item.fail { background: #FEF2F2; color: #991B1B; }
+        .compliance-result-item.not-found { background: #FFFBEB; color: #92400E; }
+        .compliance-result-item .result-icon { font-size: 1.2rem; flex-shrink: 0; }
+        .compliance-summary {
+            font-size: 0.9rem; font-weight: 600; margin-bottom: 10px; padding: 8px 0;
+        }
+
+        /* ========== 专家知识页 ========== */
+        .expert-page { display: none !important; flex-direction: column; min-height: 100vh; }
+        .expert-page.active { display: flex !important; }
+        .expert-page .content-area {
+            flex: 1; padding: 28px 32px; overflow-y: auto;
+            max-width: 800px; margin: 0 auto; width: 100%;
+        }
+        .expert-card {
+            background: var(--surface); border-radius: var(--radius-md);
+            border: 1px solid var(--border); padding: 24px 28px;
+            margin-bottom: 18px; transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+        }
+        .expert-card:hover {
+            box-shadow: var(--shadow-md);
+            border-color: transparent;
+        }
+        .expert-card-number {
+            display: inline-block; width: 28px; height: 28px;
+            border-radius: 50%; background: var(--accent);
+            color: #fff; font-size: 0.78rem; font-weight: 700;
+            text-align: center; line-height: 28px; margin-right: 10px;
+            flex-shrink: 0;
+        }
+        .expert-card-title {
+            font-size: 0.95rem; font-weight: 600; color: var(--text);
+            margin-bottom: 10px; letter-spacing: -0.01em;
+            display: flex; align-items: center;
+        }
+        .expert-card-body {
+            font-size: 0.85rem; color: var(--text-secondary);
+            line-height: 1.7; margin-bottom: 14px;
+        }
+        .expert-card-source {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 0.75rem; color: var(--text-tertiary);
+            background: var(--bg); padding: 4px 10px;
+            border-radius: 12px;
+        }
+        .expert-card-tags {
+            display: flex; flex-wrap: wrap; gap: 6px;
+            margin-bottom: 10px;
+        }
+        .expert-tag {
+            font-size: 0.7rem; padding: 2px 8px;
+            border-radius: 10px; font-weight: 500;
+        }
+        .expert-tag.chem { background: #EEF2FF; color: #4F46E5; }
+        .expert-tag.micro { background: #F0FDFA; color: #0D9488; }
+        .expert-tag.safety { background: #FFF1F2; color: #E11D48; }
+        .expert-tag.process { background: #FFFBEB; color: #D97706; }
+        body.dark .expert-tag.chem { background: #1E3A5F; color: #93C5FD; }
+        body.dark .expert-tag.micro { background: #134E4A; color: #5EEAD4; }
+        body.dark .expert-tag.safety { background: #4A1525; color: #FDA4AF; }
+        body.dark .expert-tag.process { background: #4A3510; color: #FCD34D; }
+
+        /* ========== 设置弹窗 ========== */
+        .settings-modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(15,23,42,.5); z-index: 2000;
+            justify-content: center; align-items: center; padding: 20px;
+        }
+        .settings-modal.active { display: flex; }
+        .settings-panel {
+            background: var(--surface); border-radius: var(--radius-lg);
+            max-width: 360px; width: 100%;
+            box-shadow: var(--shadow-lg); border: 1px solid var(--border);
+        }
+        .settings-header {
+            padding: 20px 24px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .settings-header h3 { font-size: 1.1rem; font-weight: 600; }
+        .settings-close {
+            width: 32px; height: 32px; border-radius: 50%; border: none;
+            background: var(--bg); cursor: pointer; font-size: 1rem;
+            color: var(--text-tertiary); transition: var(--transition);
+        }
+        .settings-close:hover { background: #F3F4F6; color: var(--text); }
+        .settings-body { padding: 24px; }
+        .settings-section { margin-bottom: 24px; }
+        .settings-section:last-child { margin-bottom: 0; }
+        .settings-label {
+            font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);
+            margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .settings-options { display: flex; gap: 8px; }
+        .settings-option {
+            flex: 1; padding: 10px 16px;
+            border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+            background: var(--bg); cursor: pointer; text-align: center;
+            font-size: 0.88rem; color: var(--text-secondary);
+            transition: var(--transition);
+        }
+        .settings-option:hover { border-color: var(--accent); }
+        .settings-option.active {
+            border-color: var(--accent); background: #EEF2FF;
+            color: var(--accent); font-weight: 600;
+        }
+        #apiKeyInput:focus { border-color: var(--accent) !important; }
+        #apiKeyInput {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+        }
+
+        /* ========== 深色模式 ========== */
+        body.dark { --bg: #0F172A; --surface: #1E293B; --border: #334155; --text: #E2E8F0; --text-secondary: #94A3B8; --text-tertiary: #64748B; }
+        body.dark { background: var(--bg); }
+        body.dark .filter-tag { background: #334155; }
+        body.dark .filter-tag:hover { background: #475569; }
+        body.dark .filter-tag.active { background: #1E293B; }
+        body.dark .top-search-box { background: #334155; }
+        body.dark .top-search-btn { color: var(--text-tertiary); }
+        body.dark .back-btn { background: #334155; }
+        body.dark .back-btn:hover { background: #475569; }
+        body.dark .card-tag { background: #334155; }
+        body.dark .modal-close { background: #334155; }
+        body.dark .modal-close:hover { background: #475569; }
+        body.dark .login-field input { background: #334155; }
+        body.dark .highlight { background: #854D0E; }
+
+        /* ========== 滚动条 ========== */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+        body.dark ::-webkit-scrollbar-thumb { background: #475569; }
+
+        /* ========== 页面过渡 ========== */
+        .page-state { animation: fadeIn 0.2s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* ========== 移动端 ========== */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed; left: -260px; top: 0; bottom: 0;
+                z-index: 80; transition: left 0.3s ease;
+                box-shadow: var(--shadow-lg);
+            }
+            .sidebar.open { left: 0; }
+            .sidebar-toggle { display: flex; }
+            .sidebar-toggle.open { left: 244px; }
+            .home-header { left: 0; padding: 10px 16px; }
+            .chat-message { max-width: 90%; }
+            .top-bar { flex-wrap: wrap; padding: 10px 14px; }
+            .top-search-container { order: 3; max-width: 100%; width: 100%; margin-top: 10px; }
+            .page-title { display: none; }
+            .results-grid { grid-template-columns: 1fr; gap: 12px; }
+            .content-area { padding: 14px; }
+            .modal-body { padding: 18px; }
+            .detail-table .label { width: 80px; }
+        }
+
+    </style>
+</head>
+<body>
+    <!-- 登录页 -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-card">
+            <div class="login-logo"><img src="TSINGTAO_logo.png" alt="TSINGTAO Logo"></div>
+            <div class="login-title">酒饮产品智能研发平台</div>
+            <div class="login-subtitle">请登录后使用</div>
+            <div class="login-field">
+                <label for="loginUser">账号</label>
+                <input type="text" id="loginUser" placeholder="请输入账号" autocomplete="username">
+            </div>
+            <div class="login-field">
+                <label for="loginPass">密码</label>
+                <div style="position:relative;">
+                    <input type="password" id="loginPass" placeholder="请输入密码" autocomplete="current-password" style="padding-right:44px;">
+                    <button type="button" id="togglePass" onclick="togglePassword()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:0.78rem;color:var(--text-tertiary);font-weight:500;">Show</button>
+                </div>
+            </div>
+            <button class="login-btn" id="loginBtn" onclick="handleLogin()">登 录</button>
+            <div class="login-error" id="loginError"></div>
+            <div class="login-loading" id="loginLoading"><div class="login-spinner"></div><span class="login-loading-text">登录中…</span></div>
+            <div class="login-footer">© 2026 青岛啤酒科技研发中心</div>
+        </div>
+    </div>
+
+    <div class="app-layout">
+        <!-- 侧边栏 -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-header-logo"><img src="TSINGTAO_logo.png" alt="Logo"></span>
+                <span class="sidebar-header-title">酒饮产品智能研发平台</span>
+            </div>
+            <nav class="sidebar-nav">
+                <!-- 数据库 -->
+                <div class="sidebar-section">
+                    <div class="sidebar-item" onclick="toggleSidebarGroup(this)" data-group="database">
+                        <span class="label">数据库</span>
+                        <span class="arrow open" id="arrow-database">▶</span>
+                    </div>
+                    <div class="sidebar-sub open" id="sub-database">
+                        <!-- 原料 -->
+                        <div class="sidebar-item" onclick="toggleSidebarGroup(this)" data-group="materials">
+                            <span class="label">原料</span>
+                            <span class="arrow open" id="arrow-materials">▶</span>
+                        </div>
+                        <div class="sidebar-sub open" id="sub-materials">
+                            <div class="sidebar-item" data-source="yaoshi" onclick="sidebarBrowse('yaoshi')">
+                                <span class="label">药食同源物质</span>
+                                <span class="badge" id="menuCountYaoshi">106</span>
+                            </div>
+                            <div class="sidebar-item" data-source="tianjia" onclick="sidebarBrowse('tianjia')">
+                                <span class="label">食品添加剂</span>
+                                <span class="badge" id="menuCountTianjia">110</span>
+                            </div>
+                            <div class="sidebar-item" data-source="xinwu" onclick="sidebarBrowse('xinwu')">
+                                <span class="label">新食品原料</span>
+                                <span class="badge" id="menuCountXinwu">180</span>
+                            </div>
+                            <div class="sidebar-item" data-source="compound" onclick="sidebarBrowse('compound')">
+                                <span class="label">FooDB数据库</span>
+                                <span class="badge" id="menuCountCompound">—</span>
+                            </div>
+                        </div>
+                        <!-- 配方 -->
+                        <div class="sidebar-item" onclick="toggleSidebarGroup(this)" data-group="formula">
+                            <span class="label">配方</span>
+                            <span class="arrow open" id="arrow-formula">▶</span>
+                        </div>
+                        <div class="sidebar-sub open" id="sub-formula">
+                            <div class="sidebar-item" onclick="sidebarPlaceholder('自有配方')">
+                                <span class="label">自有配方</span>
+                            </div>
+                            <div class="sidebar-item" onclick="sidebarPlaceholder('专利配方')">
+                                <span class="label">专利配方</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 专家知识 -->
+                <div class="sidebar-item" onclick="openExpertKnowledge()">
+                    <span class="label">专家知识</span>
+                </div>
+
+                <!-- 辅助工具 -->
+                <div class="sidebar-section">
+                    <div class="sidebar-item" onclick="toggleSidebarGroup(this)" data-group="aitools">
+                        <span class="label">辅助工具</span>
+                        <span class="arrow open" id="arrow-aitools">▶</span>
+                    </div>
+                    <div class="sidebar-sub open" id="sub-aitools">
+                        <div class="sidebar-item" onclick="openCompliance()">
+                            <span class="label">合规检测</span>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 首页 / 聊天 -->
+            <section class="home-page page-state active" id="homePage">
+                <div class="home-header">
+                    <span class="home-header-title">AI 智能助手</span>
+                    <span style="flex:1;"></span>
+                    <button id="clearChatBtn" title="清空聊天记录" style="cursor:pointer;font-size:0.8rem;color:var(--text-secondary);padding:6px 10px;border-radius:6px;border:none;background:none;font-weight:500;font-family:inherit;">清空</button>
+                    <span style="cursor:pointer;font-size:1.4rem;color:var(--text-secondary);padding:6px 8px;border-radius:6px;transition:var(--transition);" onclick="openSettings()" title="设置" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">⚙</span>
+                </div>
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="chat-welcome" id="chatWelcome">
+                            <h2>酒饮产品智能研发助手</h2>
+                            <p>我是您的 AI 研发助手，可以帮您查询原料信息、分析配方合规性、解答研发问题。请随时向我提问。</p>
+                        </div>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" class="chat-input" id="chatInput"
+                               placeholder="输入您的问题..."
+                               onkeypress="if(event.key==='Enter') sendMessage()">
+                        <button class="chat-send-btn" id="chatSendBtn" onclick="sendMessage()">↑</button>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 搜索结果页 -->
+            <section class="result-page page-state" id="resultPage">
+                <div class="top-bar">
+                    <button class="back-btn" onclick="goHome()">
+                        <span>←</span>
+                        <span>返回首页</span>
+                    </button>
+                    <div class="page-title">搜索结果</div>
+                    <div class="search-result-count" id="searchResultCount"></div>
+                </div>
+                
+                <div class="content-area">
+                    <div class="results-grid" id="searchResultsGrid"></div>
+                    <div class="no-results" id="searchNoResults" style="display:none;">
+                        <div class="no-results-icon">→</div>
+                        <div class="no-results-text">未找到匹配的原料</div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 数据库浏览页 -->
+            <section class="browse-page page-state" id="browsePage">
+                <div class="top-bar">
+                    <button class="back-btn" onclick="goHome()">
+                        <span>←</span>
+                        <span>返回首页</span>
+                    </button>
+                    <div class="page-title" id="browsePageTitle">药食同源物质</div>
+                    
+                    <div class="top-search-container">
+                        <input type="text" class="top-search-box" id="browseSearchInput" 
+                               placeholder="在当前分类中搜索..." 
+                               onkeypress="if(event.key==='Enter') performBrowseSearch()">
+                        <button class="top-search-btn" onclick="performBrowseSearch()">→</button>
+                    </div>
+                </div>
+                
+                <div class="content-area">
+                    <!-- 筛选器 -->
+                    <div class="filters-card" id="filtersCard">
+                        <!-- 药食同源筛选器 -->
+                        <div id="yaoshiFilters">
+                            <div class="filter-group">
+                                <div class="filter-group-title">分类</div>
+                                <div class="filter-tags" id="yaoshiCategoryTags" data-theme="yaoshi">
+                                    <span class="filter-tag active" data-filter="category" data-value="">全部</span>
+                                </div>
+                            </div>
+                            <div class="filter-group">
+                                <div class="filter-group-title">性味</div>
+                                <div class="filter-tags" id="yaoshiNatureTags" data-theme="yaoshi">
+                                    <span class="filter-tag active" data-filter="nature" data-value="">全部</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 食品添加剂筛选器 -->
+                        <div id="tianjiaFilters" style="display:none;">
+                            <div class="filter-group">
+                                <div class="filter-group-title">功能</div>
+                                <div class="filter-tags" id="tianjiaFuncTags" data-theme="tianjia">
+                                    <span class="filter-tag active" data-filter="func" data-value="">全部</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 新食品原料筛选器 -->
+                        <div id="xinwuFilters" style="display:none;">
+                            <div class="filter-group">
+                                <div class="filter-group-title">分类</div>
+                                <div class="filter-tags" id="xinwuCategoryTags" data-theme="xinwu">
+                                    <span class="filter-tag active" data-filter="category" data-value="">全部</span>
+                                </div>
+                            </div>
+                            <div class="filter-group">
+                                <div class="filter-group-title">年份</div>
+                                <div class="filter-tags" id="xinwuYearTags" data-theme="xinwu">
+                                    <span class="filter-tag active" data-filter="year" data-value="">全部</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- FooDB数据库筛选器 -->
+                        <div id="compoundFilters" style="display:none;">
+                            <div class="filter-group">
+                                <div class="filter-group-title">化学界</div>
+                                <div class="filter-tags" id="compoundKingdomTags" data-theme="compound">
+                                    <span class="filter-tag active" data-filter="kingdom" data-value="">全部</span>
+                                </div>
+                            </div>
+                            <div class="filter-group">
+                                <div class="filter-group-title">化合物分类</div>
+                                <div class="filter-tags" id="compoundKlassTags" data-theme="compound">
+                                    <span class="filter-tag active" data-filter="klass" data-value="">全部</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 浏览结果 -->
+                    <div class="results-grid" id="browseResultsGrid"></div>
+                    <div class="no-results" id="browseNoResults" style="display:none;">
+                        <div class="no-results-text">暂无数据</div>
+                        <div class="no-results-text">该分类下暂无数据</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 合规检测页 -->
+            <section class="compliance-page page-state" id="compliancePage">
+                <div class="top-bar">
+                    <button class="back-btn" onclick="closeCompliance()">
+                        <span>←</span>
+                        <span>返回聊天</span>
+                    </button>
+                    <div class="page-title">⚖ 合规检测</div>
+                </div>
+                <div class="content-area">
+                    <div class="compliance-card">
+                        <div class="compliance-card-header">
+                            <h2>⚖ 添加剂合规检测</h2>
+                            <p>输入食品添加剂名称及使用量，自动对照 GB 2760 标准检测合规性</p>
+                        </div>
+                        <div id="complianceRows">
+                            <div class="compliance-row">
+                                <div class="field field-name">
+                                    <label>物质名称</label>
+                                    <input type="text" placeholder="如：安赛蜜、苯甲酸钠..." class="comp-name">
+                                </div>
+                                <div class="field field-amount">
+                                    <label>添加量</label>
+                                    <input type="number" placeholder="0.0" step="0.01" min="0" class="comp-amount">
+                                </div>
+                                <div class="field field-unit">
+                                    <label>单位</label>
+                                    <select class="comp-unit"><option>g/kg</option><option>mg/kg</option></select>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="compliance-add" onclick="addComplianceRow()">+ 添加物质</button>
+                        <button class="compliance-check" onclick="runComplianceCheck()">开始检测</button>
+                        <div class="compliance-result" id="complianceResult"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 专家知识页 -->
+            <section class="expert-page page-state" id="expertPage">
+                <div class="top-bar">
+                    <button class="back-btn" onclick="closeExpertKnowledge()">
+                        <span>←</span>
+                        <span>返回聊天</span>
+                    </button>
+                    <div class="page-title">专家知识库</div>
+                </div>
+                <div class="content-area" id="expertContent"></div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- 详情弹窗 -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header" id="modalHeader">
+                <div class="modal-title" id="modalTitle">详情</div>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+    
+    <!-- 设置弹窗 -->
+    <div class="settings-modal" id="settingsModal">
+        <div class="settings-panel">
+            <div class="settings-header">
+                <h3>⚙ 设置</h3>
+                <button class="settings-close" onclick="closeSettings()">×</button>
+            </div>
+            <div class="settings-body">
+                <div class="settings-section">
+                    <div class="settings-label">DeepSeek API Key</div>
+                    <div style="display:flex;gap:8px;">
+                        <input type="text" id="apiKeyInput" placeholder="sk-..." autocomplete="off" spellcheck="false"
+                               style="flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:0.85rem;background:var(--bg);outline:none;font-family:monospace;transition:border-color 0.2s;"
+                               onpaste="setTimeout(function(){document.getElementById('apiKeyInput').dispatchEvent(new Event('input'))},10)">
+                        <button onclick="saveApiKey()" style="padding:9px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:0.85rem;font-weight:500;white-space:nowrap;">保存</button>
+                    </div>
+                    <div id="apiKeyStatus" style="font-size:0.75rem;margin-top:6px;color:var(--text-tertiary);"></div>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-label">亮度</div>
+                    <div class="settings-options">
+                        <button class="settings-option active" id="optLight" onclick="setBrightness('light')">☀️ 明亮</button>
+                        <button class="settings-option" id="optDark" onclick="setBrightness('dark')">🌙 暗黑</button>
+                    </div>
+                </div>
+                <div style="margin-top:8px;padding-top:16px;border-top:1px solid var(--border);text-align:center;">
+                    <span id="logoutLink" style="cursor:pointer;font-size:0.78rem;color:var(--text-tertiary);text-decoration:none;transition:color 0.2s;">退出登录</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+    // ==================== 数据加载系统 ====================
+    const DATA_URLS = {
+        yaoshi: "data/yaoshi.json",
+        tianjia: "data/tianjia.json",
+        xinwu: "data/xinwu.json",
+        compound: "data/compounds.json"
+    };
+    const dataCache = {};
+    const dataPromises = {};
+
+    async function loadData(source) {
+        if (dataCache[source]) return dataCache[source];
+        if (dataPromises[source]) return dataPromises[source];
+
+        dataPromises[source] = fetch(DATA_URLS[source])
+            .then(r => {
+                if (!r.ok) throw new Error("Failed to load " + source + ": " + r.status);
+                return r.json();
+            })
+            .then(data => {
+                dataCache[source] = data.map(item => ({...item, _source: source}));
+                return dataCache[source];
+            })
+            .finally(() => { dataPromises[source] = null; });
+
+        return dataPromises[source];
+    }
+
+    async function preloadAllData() {
+        try {
+            await Promise.all([
+                loadData("yaoshi"),
+                loadData("tianjia"),
+                loadData("xinwu"),
+                loadData("compound")
+            ]);
+            updateAllStats();
+        } catch(e) {
+            console.error("Data preload failed:", e);
+        }
+    }
+
+    function getCachedData(source) {
+        return dataCache[source] || [];
+    }
+
+    function isLoading(source) {
+        return !!dataPromises[source];
+    }
+
+    // ==================== 状态变量 ====================
+    let currentPage = 'home';
+    let currentDatabase = 'yaoshi';
+    let currentSearchKeyword = '';
+    let currentFilters = { category: '', nature: '', func: '', year: '', kingdom: '', klass: '' };
+    let allResults = [];
+    
+    // ==================== 初始化 ====================
+    function init() {
+        setupFilterListeners();
+        setupModalListeners();
+        initSidebar();
+        preloadAllData();
+        initDarkMode();
+        // Bind clear chat button
+        var clearBtn = document.getElementById('clearChatBtn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', clearChatHistory);
+        }
+        // Bind logout link
+        var logoutLink = document.getElementById('logoutLink');
+        if (logoutLink) {
+            logoutLink.addEventListener('click', confirmLogout);
+            logoutLink.addEventListener('mouseenter', function() { this.style.textDecoration = 'underline'; });
+            logoutLink.addEventListener('mouseleave', function() { this.style.textDecoration = 'none'; });
+        }
+    }
+
+    // ==================== 侧边栏 ====================
+    function initSidebar() {
+        // Initialize arrows for items that start open
+        document.querySelectorAll('.sidebar-sub.open').forEach(sub => {
+            const trigger = sub.previousElementSibling;
+            if (trigger) {
+                const arrow = trigger.querySelector('.arrow');
+                if (arrow) arrow.classList.add('open');
+            }
+        });
+    }
+
+    function toggleSidebarGroup(el) {
+        const group = el.dataset.group;
+        const sub = document.getElementById('sub-' + group);
+        const arrow = document.getElementById('arrow-' + group) || el.querySelector('.arrow');
+
+        if (sub) {
+            sub.classList.toggle('open');
+        }
+        if (arrow) {
+            arrow.classList.toggle('open');
+        }
+    }
+
+    function sidebarBrowse(source) {
+        // Update sidebar active state
+        document.querySelectorAll('.sidebar-item[data-source]').forEach(item => {
+            item.classList.remove('active');
+        });
+        const activeItem = document.querySelector('.sidebar-item[data-source="' + source + '"]');
+        if (activeItem) activeItem.classList.add('active');
+
+        // Navigate to browse page
+        browseDatabase(source);
+    }
+
+    function sidebarPlaceholder(name) {
+        alert(name + ' 模块正在建设中，敬请期待。');
+    }
+
+    // ==================== 专家知识库 ====================
+    const EXPERT_KNOWLEDGE = [
+        {
+            title: '美拉德反应：非酶褐变的核心机制',
+            body: '美拉德反应是还原糖的羰基与氨基酸/蛋白质的游离氨基之间发生的复杂化学反应，最终生成棕色的类黑精（melanoidins）及数百种挥发性风味物质。该反应分为三个阶段：初期缩合与Amadori重排、中期降解（脱水、水解裂解、Strecker降解）、末期类黑精聚合。反应速率遵循Arrhenius方程，一般在130–140°C以上显著发生。水活度在0.3–0.7时反应最优，碱性环境加速反应（氨基保持非质子化状态）。戊糖反应活性 > 己糖 > 双糖。这是焙烤食品色泽与风味、咖啡与巧克力特征香气的核心来源。',
+            source: 'Fennema\'s Food Chemistry, 5th Edition. Damodaran, S., Parkin, K.L. (eds). CRC Press, 2017. Chapter 3: Carbohydrates.',
+            tags: ['chem'], tagLabels: ['食品化学']
+        },
+        {
+            title: '水分活度（aᵥᵥ）与微生物生长的关系',
+            body: '水分活度是食品中水的可利用程度的量度，而非含水量本身。大多数细菌在 aᵥᵥ < 0.91 时停止生长，大多数酵母在 aᵥᵥ < 0.88 时停止，大多数霉菌在 aᵥᵥ < 0.80 时停止。金黄色葡萄球菌可在低至 aᵥᵥ 0.86 条件下生长（厌氧则为 0.91），是食物中毒菌中耐渗透压最强的。降低 aᵥᵥ 的方式包括添加食盐、蔗糖或干燥脱水。当 aᵥᵥ 降低时，微生物的延滞期延长、生长速率下降、最终细胞产量减少。',
+            source: 'Jay, J.M., Loessner, M.J., Golden, D.A. Modern Food Microbiology, 7th Edition. Springer, 2005. Chapter 3: Intrinsic and Extrinsic Parameters of Foods That Affect Microbial Growth.',
+            tags: ['micro', 'safety'], tagLabels: ['食品微生物', '食品安全']
+        },
+        {
+            title: '栅栏技术：多重障碍协同保藏',
+            body: '由德国食品微生物学家Lothar Leistner于1976年提出。核心思想：食品的微生物稳定性不依赖于单一保藏因子，而是通过多种"栅栏"（hurdles）的智能组合来实现。这些栅栏包括：温度（F值）、水活度、pH（酸度）、氧化还原电位、防腐剂、竞争性菌群等。关键机制有三：(1) 扰乱微生物的稳态（homeostasis）；(2) 代谢耗竭——微生物在多重应激下耗尽其能量储备；(3) 多靶点保藏——选择攻击不同细胞靶点的栅栏，最大化协同效应、避免交叉耐受。在发酵香肠（盐 + 酸 + 干燥 + 烟熏 + 冷藏）中体现了栅栏技术的经典应用。',
+            source: 'Leistner, L. (2000). Basic aspects of food preservation by hurdle technology. International Journal of Food Microbiology, 55(1-3), 181-186.',
+            tags: ['micro', 'process'], tagLabels: ['食品微生物', '加工技术']
+        },
+        {
+            title: '肉毒杆菌（Clostridium botulinum）与低酸食品',
+            body: '肉毒杆菌是革兰氏阳性、专性厌氧的产芽孢杆菌，产生已知最毒的神经毒素之一。分为I组（蛋白水解型，A/B/F型）和II组（非蛋白水解型，B/E/F型）。I组最低生长pH为4.6，II组为5.0。FDA将pH 4.6作为低酸食品与酸性食品的分界线——pH ≤ 4.6的食品仅需常压杀菌（100°C），而pH > 4.6且aᵥᵥ > 0.85的低酸食品必须采用高压杀菌（≥121°C）。I组最低aᵥᵥ为0.94（约10%食盐），II组为0.97（约5%食盐）。I组芽孢热抗性强（D₁₂₁ = 0.1–0.3 min），罐头工业规定12-D杀菌工艺（减少12个对数级）。',
+            source: 'Jay, J.M., Loessner, M.J., Golden, D.A. Modern Food Microbiology, 7th Edition. Springer, 2005. Chapter 24: Food Poisoning Caused by Gram-Positive Sporeforming Bacteria.',
+            tags: ['micro', 'safety'], tagLabels: ['食品微生物', '食品安全']
+        },
+        {
+            title: '蛋白质变性：结构与功能的改变',
+            body: '蛋白质变性是指维持天然构象的弱相互作用（氢键、疏水作用、离子键、范德华力）被破坏而导致结构展开的过程，不涉及肽键的水解。常见变性因素包括：热（>60°C典型变性温度范围）、极端pH、有机溶剂、尿素、表面活性剂（SDS）和机械剪切。热变性在食品加工中最为常见——蛋清加热凝固（卵清蛋白变性）、乳清蛋白在乳品加热中变性、肌肉蛋白在烹饪中变性失水。变性后蛋白质溶解度通常降低，但消化率提高。某些球状蛋白在气-液界面（如搅打蛋白）或油-水界面（如乳化）时也会发生界面变性。',
+            source: 'Damodaran, S. Amino Acids, Peptides, and Proteins. In: Fennema\'s Food Chemistry, 5th Edition. CRC Press, 2017. Chapter 5.',
+            tags: ['chem'], tagLabels: ['食品化学']
+        },
+        {
+            title: '脂质氧化：自动氧化与酸败',
+            body: '脂质氧化是导致食品品质劣变的主要原因之一，表现为酸败异味、颜色褪变和营养价值下降。自动氧化机制分为三个阶段：(1) 引发——不饱和脂肪酸在光、热、金属离子（Fe²⁺、Cu²⁺）催化下形成脂质自由基；(2) 传递——自由基与O₂反应形成过氧化自由基，再与新的脂肪酸反应形成氢过氧化物；(3) 终止——自由基相互结合形成非自由基产物。多不饱和脂肪酸的氧化速率远高于单不饱和脂肪酸（亚麻酸:亚油酸:油酸 ≈ 2500:100:1）。抗氧化剂（如维生素E、BHA、BHT）通过提供氢原子阻断链式反应。螯合剂（如EDTA、柠檬酸）通过螯合金属离子间接抑制氧化。',
+            source: 'McClements, D.J., Decker, E.A. Lipids. In: Fennema\'s Food Chemistry, 5th Edition. CRC Press, 2017. Chapter 4.',
+            tags: ['chem'], tagLabels: ['食品化学']
+        },
+        {
+            title: '乳酸菌发酵：同型与异型发酵',
+            body: '乳酸菌（LAB）是一类革兰氏阳性、不产芽孢、耐酸的球菌或杆菌，利用碳水化合物主要产生乳酸。发酵类型分为：(1) 同型发酵（如Lactococcus lactis、Streptococcus thermophilus）——通过糖酵解途径（EMP途径）将1分子葡萄糖转化为2分子乳酸和2分子ATP；(2) 异型发酵（如Leuconostoc mesenteroides）——通过磷酸酮糖酶途径将1分子葡萄糖转化为1分子乳酸、1分子乙醇（或乙酸）和CO₂，仅产生1分子ATP。乳酸菌通过产酸降低pH、产生细菌素（如nisin）、过氧化氢和双乙酰等抑制腐败菌和致病菌。在乳制品（酸奶、奶酪）、发酵蔬菜（泡菜、酸菜）、发酵肉制品和酸面包中发挥关键作用。',
+            source: 'Adams, M.R., Moss, M.O., McClure, P.J. Food Microbiology, 4th Edition. Royal Society of Chemistry, 2016. Chapter 7: Fermented Foods.',
+            tags: ['micro', 'process'], tagLabels: ['食品微生物', '加工技术']
+        },
+        {
+            title: '果胶凝胶化：高甲氧基与低甲氧基果胶',
+            body: '果胶是植物细胞壁中的结构多糖，主链为α-1,4-D-半乳糖醛酸，部分羧基以甲酯形式存在。甲酯化程度（DE）决定其凝胶机制：(1) 高甲氧基果胶（DE > 50%）——需要高糖浓度（>55%）和低pH（2.8–3.5）才能形成凝胶，通过蔗糖降低水活度促进疏水作用和氢键形成稳定网络。(2) 低甲氧基果胶（DE < 50%）——需要二价阳离子（Ca²⁺）在pH 2.6–6.5范围内形成"蛋盒模型"（egg-box model）凝胶结构，不依赖糖浓度，适用于低糖/无糖果酱。高甲氧基果胶凝胶热不可逆，低甲氧基果胶凝胶热可逆。这在果酱、果冻和酸奶水果制品的质构设计中具有核心应用。',
+            source: 'Belitz, H.-D., Grosch, W., Schieberle, P. Food Chemistry, 4th Edition. Springer, 2009. Chapter 4: Carbohydrates.',
+            tags: ['chem'], tagLabels: ['食品化学']
+        },
+        {
+            title: '焦糖化反应：糖的热降解',
+            body: '焦糖化反应是糖类在高温（通常>160°C）下无水或微水条件下发生的一系列热降解和聚合反应，属于非酶褐变的一种。与美拉德反应不同，焦糖化不涉及氨基化合物。反应路径包括：(1) 初始阶段——糖的异构化与分子内脱水（如蔗糖水解为葡萄糖和果糖，进一步脱水形成异蔗糖酐）；(2) 中间阶段——裂解产生醛、酮等挥发性小分子（如羟甲基糠醛HMF、麦芽酚）；(3) 终末阶段——聚合形成深棕色焦糖色素（caramelans、caramelen、caramelin）。蔗糖焦糖化温度约160–180°C。催化剂（酸或碱）可降低反应温度——酸性条件下生成亲水性焦糖色素（饮料用），碱性条件下生成疏水性色素（酱油调色用）。铵法焦糖色素（E150c/d）因含4-甲基咪唑而受限量管控。',
+            source: 'Fennema\'s Food Chemistry, 5th Edition. Damodaran, S., Parkin, K.L. (eds). CRC Press, 2017. Chapter 3: Carbohydrates.',
+            tags: ['chem'], tagLabels: ['食品化学']
+        },
+        {
+            title: '淀粉糊化与回生：质构的关键控制点',
+            body: '淀粉糊化（gelatinization）是指淀粉颗粒在过量水中加热时，无定形区域吸水膨胀、氢键断裂、结晶结构破坏、直链淀粉溶出的过程。糊化后淀粉颗粒失去偏光十字（偏光显微镜下），黏度急剧上升。小麦淀粉糊化温度约52–65°C，马铃薯淀粉约58–65°C。回生（retrogradation）是糊化淀粉在冷却和储存时，分散的直链淀粉和支链淀粉分子重新以氢键结合形成有序结构的过程。直链淀粉回生快（数小时内），形成抗性淀粉（RS3型），难以被消化酶水解；支链淀粉回生慢（数天至数周），影响面包老化（staling）的长期质构变化。控制水分含量、温度、添加乳化剂（如单甘酯与直链淀粉形成复合物）可延缓回生。',
+            source: 'Belitz, H.-D., Grosch, W., Schieberle, P. Food Chemistry, 4th Edition. Springer, 2009. Chapter 4: Carbohydrates.',
+            tags: ['chem', 'process'], tagLabels: ['食品化学', '加工技术']
+        }
+    ];
+
+    function renderExpertKnowledge() {
+        const container = document.getElementById('expertContent');
+        let html = '';
+        for (let i = 0; i < EXPERT_KNOWLEDGE.length; i++) {
+            const k = EXPERT_KNOWLEDGE[i];
+            const tagsHtml = k.tags.map((t, j) =>
+                '<span class="expert-tag ' + t + '">' + k.tagLabels[j] + '</span>'
+            ).join(' ');
+            html +=
+                '<div class="expert-card">' +
+                    '<div class="expert-card-title">' +
+                        '<span class="expert-card-number">' + (i + 1) + '</span>' +
+                        k.title +
+                    '</div>' +
+                    '<div class="expert-card-tags">' + tagsHtml + '</div>' +
+                    '<div class="expert-card-body">' + k.body + '</div>' +
+                    '<div class="expert-card-source">📚 ' + k.source + '</div>' +
+                '</div>';
+        }
+        container.innerHTML = html;
+    }
+
+    function openExpertKnowledge() {
+        document.querySelectorAll('.sidebar-item[data-source]').forEach(m => m.classList.remove('active'));
+        renderExpertKnowledge();
+        switchPage('expertPage');
+    }
+
+    function closeExpertKnowledge() {
+        switchPage('homePage');
+    }
+
+    // ==================== 聊天功能 (DeepSeek + RAG) ====================
+    const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
+    const DEEPSEEK_MODEL = 'deepseek-v4-flash';
+
+    function buildRAGContext(matches) {
+        // Build a concise context string from matched database entries
+        if (!matches || matches.length === 0) return '';
+
+        const sourceLabels = {
+            yaoshi: '药食同源物质', tianjia: '食品添加剂',
+            xinwu: '新食品原料', compound: 'FooDB数据库'
+        };
+
+        let ctx = '【数据库匹配结果】\n';
+        for (const m of matches) {
+            const src = sourceLabels[m._source] || m._source;
+            ctx += '◆ ' + m.name + ' [' + src + ']';
+            if (m._source === 'yaoshi') {
+                if (m.alias) ctx += ' 别名: ' + m.alias;
+                if (m.latin) ctx += ' 拉丁名: ' + m.latin;
+                if (m.category) ctx += ' 分类: ' + m.category;
+                if (m.efficacy) ctx += ' 功效: ' + m.efficacy;
+                if (m.nature_flavor) ctx += ' 性味: ' + m.nature_flavor;
+                if (m.dosage) ctx += ' 用量: ' + m.dosage;
+                if (m.origin) ctx += ' 产地: ' + m.origin;
+                if (m.active_components) ctx += ' 功效成分: ' + m.active_components;
+                if (m.precautions) ctx += ' 注意: ' + m.precautions;
+            } else if (m._source === 'tianjia') {
+                if (m.name_en) ctx += ' 英文名: ' + m.name_en;
+                if (m.ins) ctx += ' INS: ' + m.ins;
+                if (m.func) ctx += ' 功能: ' + m.func;
+                if (m.max_usage) ctx += ' 最大用量: ' + m.max_usage + (m.unit || '');
+                if (m.food_cat_name) ctx += ' 食品类别: ' + m.food_cat_name;
+                if (m.notes) ctx += ' 备注: ' + m.notes;
+            } else if (m._source === 'xinwu') {
+                if (m.name_en) ctx += ' 英文名: ' + m.name_en;
+                if (m.category) ctx += ' 分类: ' + m.category;
+                if (m.year) ctx += ' 批准年份: ' + m.year;
+                if (m.dosage) ctx += ' 推荐量: ' + m.dosage;
+                if (m.source) ctx += ' 来源: ' + m.source;
+                if (m.notes) ctx += ' 备注: ' + m.notes;
+            } else {
+                if (m.name_zh) ctx += ' 中文名: ' + m.name_zh;
+                if (m.klass_zh) ctx += ' 分类: ' + (m.kingdom_zh || '') + ' > ' + m.klass_zh;
+                if (m.description_zh) ctx += ' 描述: ' + m.description_zh.substring(0, 200);
+                if (m.cas_number) ctx += ' CAS: ' + m.cas_number;
+            }
+            ctx += '\n';
+        }
+        return ctx;
+    }
+
+    async function callDeepSeekAPI(userMessage, context) {
+        const apiKey = getApiKey();
+        if (!apiKey) {
+            return { text: '请先在设置中配置 DeepSeek API Key（点击右上角 ⚙），然后我就可以智能回答您的问题了。', matches: [] };
+        }
+
+        const systemPrompt = '你是酒饮产品智能研发平台的AI助手，专注于饮料配方研发、食品原料、食品添加剂、食品安全领域。'
+            + '请根据提供的数据库检索结果回答用户问题。如果数据库结果能回答用户问题，请基于数据给出准确、专业的回答，并自然地提及物质所属的数据库类别。'
+            + '如果数据库结果不足以回答用户问题，请基于你的专业知识给出建议，并引导用户通过左侧工具栏的数据库浏览更多信息。'
+            + '回答使用中文，简洁专业，控制在200字以内。';
+
+        const userContent = context
+            ? '用户问题：' + userMessage + '\n\n' + context + '\n\n请根据以上数据库信息回答用户问题。'
+            : '用户问题：' + userMessage + '\n\n（未在数据库中找到直接匹配的物质，请基于专业知识回答。）';
+
+        try {
+            const resp = await fetch(DEEPSEEK_API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + apiKey
+                },
+                body: JSON.stringify({
+                    model: DEEPSEEK_MODEL,
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userContent }
+                    ],
+                    max_tokens: 600,
+                    temperature: 0.7
+                })
+            });
+
+            if (!resp.ok) {
+                const err = await resp.text();
+                let errMsg = 'API 请求失败 (' + resp.status + ')';
+                if (resp.status === 401) errMsg = 'API Key 无效，请在设置中检查您的 DeepSeek API Key。';
+                else if (resp.status === 402) errMsg = 'API 账户余额不足，请充值后重试。';
+                else if (resp.status === 429) errMsg = 'API 请求过于频繁，请稍后重试。';
+                console.error('DeepSeek API error:', err);
+                return { text: errMsg, matches: [] };
+            }
+
+            const data = await resp.json();
+            const text = data.choices?.[0]?.message?.content || '抱歉，未能获取有效回复。';
+            return { text, matches: [] };
+        } catch (e) {
+            console.error('DeepSeek API network error:', e);
+            return { text: '网络请求失败，请检查网络连接后重试。', matches: [] };
+        }
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('chatInput');
+        const btn = document.getElementById('chatSendBtn');
+        const message = input.value.trim();
+        if (!message) return;
+
+        // Hide welcome
+        const welcome = document.getElementById('chatWelcome');
+        if (welcome) welcome.style.display = 'none';
+
+        // Add user message
+        addChatMessage('user', message);
+        input.value = '';
+        input.focus();
+
+        btn.disabled = true;
+        const typing = showTyping();
+
+        // Ensure data is loaded
+        await Promise.all([
+            loadData('yaoshi'), loadData('tianjia'),
+            loadData('xinwu'), loadData('compound')
+        ]);
+
+        // RAG: search database for relevant context
+        const matches = findSubstancesInDB(message);
+        const context = buildRAGContext(matches);
+
+        // Call DeepSeek API
+        const response = await callDeepSeekAPI(message, context);
+        hideTyping(typing);
+
+        // Merge API response text with matched substance chips
+        const allMatches = matches.length > 0 ? matches : [];
+        addChatMessage('assistant', response.text, allMatches);
+        btn.disabled = false;
+    }
+
+    function addChatMessage(role, text, matches) {
+        const container = document.getElementById('chatMessages');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'chat-message ' + role;
+
+        const avatarIcon = role === 'user' ? '👤' : '🤖';
+        const now = new Date();
+        const time = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+        let html =
+            '<div class="chat-avatar">' + avatarIcon + '</div>' +
+            '<div>' +
+                '<div class="chat-bubble">' + escapeHtml(text) + '</div>';
+
+        // Add substance link chips if matches exist
+        if (matches && matches.length > 0) {
+            html += '<div class="chat-substance-links">';
+            for (const m of matches) {
+                const sourceLabel = m._source === 'yaoshi' ? '药食同源' :
+                                    m._source === 'tianjia' ? '食品添加剂' :
+                                    m._source === 'xinwu' ? '新食品原料' : 'FooDB';
+                html += '<span class="chat-substance-chip" data-theme="' + m._source +
+                        '" onclick="jumpToSubstance(\'' + m._source + '\', ' + m._idx + ')">' +
+                        escapeHtml(m.name) +
+                        ' <span class="chip-source">' + sourceLabel + '</span>' +
+                        ' <span class="chip-arrow">→</span></span>';
+            }
+            html += '</div>';
+        }
+
+        html += '<div class="chat-time">' + time + '</div></div>';
+
+        msgDiv.innerHTML = html;
+        container.appendChild(msgDiv);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function showTyping() {
+        const container = document.getElementById('chatMessages');
+        const typing = document.createElement('div');
+        typing.className = 'chat-message assistant';
+        typing.id = 'chatTypingIndicator';
+        typing.innerHTML =
+            '<div class="chat-avatar">🤖</div>' +
+            '<div class="chat-bubble"><div class="chat-typing" style="display:flex;">' +
+            '<span class="dot"></span><span class="dot"></span><span class="dot"></span>' +
+            '</div></div>';
+        container.appendChild(typing);
+        container.scrollTop = container.scrollHeight;
+        return typing;
+    }
+
+    function showConfirmDialog(msg, onOk) {
+        // Remove any existing confirm
+        var old = document.getElementById('confirmDialog');
+        if (old) old.remove();
+
+        var overlay = document.createElement('div');
+        overlay.id = 'confirmDialog';
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        overlay.innerHTML =
+            '<div style="background:#fff;border-radius:12px;padding:28px 32px 22px;max-width:360px;width:90%;box-shadow:0 12px 40px rgba(0,0,0,.15);text-align:center;">'
+            + '<p style="font-size:0.95rem;color:#1A1A2E;margin-bottom:22px;line-height:1.6;">' + msg + '</p>'
+            + '<div style="display:flex;gap:10px;justify-content:center;">'
+            + '<button id="confirmCancelBtn" style="flex:1;padding:10px;border:1.5px solid #E5E7EB;border-radius:8px;background:#fff;cursor:pointer;font-size:0.88rem;color:#6B7280;">取消</button>'
+            + '<button id="confirmOkBtn" style="flex:1;padding:10px;border:none;border-radius:8px;background:#4F46E5;color:#fff;cursor:pointer;font-size:0.88rem;font-weight:600;">确定</button>'
+            + '</div></div>';
+        document.body.appendChild(overlay);
+
+        document.getElementById('confirmOkBtn').onclick = function() {
+            overlay.remove();
+            onOk();
+        };
+        document.getElementById('confirmCancelBtn').onclick = function() {
+            overlay.remove();
+        };
+        overlay.onclick = function(e) {
+            if (e.target === overlay) overlay.remove();
+        };
+    }
+
+    function clearChatHistory() {
+        showConfirmDialog('确定要清空所有聊天记录吗？此操作不可撤销。', function() {
+            var container = document.getElementById('chatMessages');
+            if (!container) return;
+            while (container.firstChild) container.removeChild(container.firstChild);
+            var welcomeDiv = document.createElement('div');
+            welcomeDiv.className = 'chat-welcome';
+            welcomeDiv.id = 'chatWelcome';
+            welcomeDiv.innerHTML = '<h2>酒饮产品智能研发助手</h2><p>我是您的 AI 研发助手，可以帮您查询原料信息、分析配方合规性、解答研发问题。请随时向我提问。</p>';
+            container.appendChild(welcomeDiv);
+        });
+    }
+
+    function hideTyping(typing) {
+        if (typing && typing.parentNode) {
+            typing.parentNode.removeChild(typing);
+        }
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML.replace(/\n/g, '<br>');
+    }
+
+    // ==================== 智能物质名称提取 ====================
+
+    function findSubstancesInDB(query) {
+        if (!query || query.trim().length < 2) return [];
+
+        const allMatches = [];
+        const sources = ['yaoshi', 'tianjia', 'xinwu', 'compound'];
+
+        // ===== 策略一：反向匹配（最可靠） =====
+        // 遍历所有数据库项，检查其名称是否出现在用户消息中
+        // 这天然处理了 "有没有安赛蜜的信息" / "我想查安赛蜜" 等自然语言
+        const origMsg = query.replace(/[\s]+/g, '');
+
+        for (const source of sources) {
+            const data = getCachedData(source);
+            if (!data || !data.length) continue;
+
+            for (let i = 0; i < data.length; i++) {
+                const item = data[i];
+                const names = [];
+
+                if (source === 'yaoshi') {
+                    names.push(item.name);
+                    if (item.alias) names.push(item.alias);
+                } else if (source === 'tianjia') {
+                    names.push(item.name);
+                    if (item.name_en) names.push(item.name_en);
+                } else if (source === 'xinwu') {
+                    names.push(item.name);
+                    if (item.name_en) names.push(item.name_en);
+                } else {
+                    names.push(item.name);
+                    if (item.name_zh) names.push(item.name_zh);
+                }
+
+                for (const name of names) {
+                    if (name && name.length >= 2 && origMsg.includes(name)) {
+                        allMatches.push({ ...item, _source: source, _idx: i, _matchedBy: name });
+                        break;
+                    }
+                }
+            }
+        }
+
+        // ===== 策略二：正向清洗匹配 =====
+        // 如果反向匹配没找到，清洗掉自然语言噪声词后尝试
+        if (allMatches.length === 0) {
+            // 移除常见查询前缀/后缀
+            let cleaned = query;
+
+            // 移除整段查询句式
+            cleaned = cleaned.replace(/(?:我想?|帮我?|请(?:你|您)?|麻烦|能不能|可以|如何|怎么|怎样)(?:查询|搜索|查找|找一下|找找|查一下|查查|看看|了解一下|知道|介绍)(?:一下|一下吗|吗)?/g, ' ');
+            cleaned = cleaned.replace(/(?:查询|搜索|查找|找一下|找找|查一下|查查|看看|了解一下|介绍一下)(?:一下|一下吗|吗)?/g, ' ');
+            cleaned = cleaned.replace(/(?:什么是|什么叫|什么叫做|有没有|有关于|关于|有关)(?:的)?/g, ' ');
+            cleaned = cleaned.replace(/(?:是什么|是谁|是什么意思|有啥|有什么|有哪些|还有|其他的?)/g, ' ');
+            cleaned = cleaned.replace(/(?:请(?:你|您)?|麻烦|能不能|可以|帮我?)(?:告诉我|说一下|讲一下|说说|讲讲)/g, ' ');
+            cleaned = cleaned.replace(/(?:我(?:想|要|需要)|帮我?|给我)(?:了?解|知道|查看)/g, ' ');
+
+            // 移除常见后缀噪声词
+            cleaned = cleaned.replace(/[的之](?:信息|资料|数据|内容|详情|说明|介绍|情况|标准|规定|限量|用法|用途|功能|作用|功效|价格|产地|来源)/g, ' ');
+
+            // 移除标点
+            cleaned = cleaned.replace(/[，,。\.、；;：:！!？?""''（）()\[\]【】\s]+/g, ' ').trim();
+
+            // 移除单独的噪声词
+            const noiseSet = new Set([
+                '查询', '搜索', '查找', '找', '查', '看看', '看', '了解', '知道',
+                '我想', '我要', '帮我', '请', '麻烦', '能不能', '可以', '如何',
+                '什么', '怎么', '怎样', '有没有', '关于', '有关于', '介绍一下',
+                '告诉我', '说一下', '讲一下', '说说', '讲讲', '什么是', '的意思',
+                '吗', '呢', '吧', '啊', '呀', '嗯', '一下', '一个', '一下吗',
+                '我想查询', '帮我查', '帮我查一下', '查一下', '查查', '找一下',
+                '搜索一下', '查找一下', '帮忙查', '看看有没有', '的信息', '的资料',
+                '信息', '资料', '数据', '内容', '详情', '说明', '介绍', '情况',
+                '标准', '规定', '限量', '用法', '用途', '功能', '作用', '功效',
+                '价格', '产地', '来源', '还有', '其他', '别的',
+            ]);
+
+            let words = cleaned.split(/\s+/).filter(w => w.length >= 2 && !noiseSet.has(w));
+
+            // 尝试每个候选词
+            const tried = new Set();
+            for (const candidate of words) {
+                if (tried.has(candidate)) continue;
+                tried.add(candidate);
+
+                for (const source of sources) {
+                    const data = getCachedData(source);
+                    if (!data || !data.length) continue;
+
+                    for (let i = 0; i < data.length; i++) {
+                        const item = data[i];
+                        const searchFields = [];
+
+                        if (source === 'yaoshi') {
+                            searchFields.push(item.name, item.alias, item.latin);
+                        } else if (source === 'tianjia') {
+                            searchFields.push(item.name, item.name_en, item.ins, item.cns);
+                        } else if (source === 'xinwu') {
+                            searchFields.push(item.name, item.name_en);
+                        } else {
+                            searchFields.push(item.name, item.name_zh);
+                        }
+
+                        for (const field of searchFields) {
+                            if (field && String(field).includes(candidate)) {
+                                allMatches.push({ ...item, _source: source, _idx: i, _matchedBy: candidate });
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Deduplicate by name+source, limit to 6
+        const seen = new Set();
+        return allMatches.filter(m => {
+            const key = m._source + '|' + m.name;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        }).slice(0, 6);
+    }
+
+
+    // ==================== 跳转到物质详情 ====================
+    async function jumpToSubstance(source, idx) {
+        // Ensure data is loaded
+        await loadData(source);
+        const data = getCachedData(source);
+        if (!data || !data.length || idx >= data.length) return;
+
+        const item = data[idx];
+
+        // Navigate to browse page for that source
+        currentDatabase = source;
+        currentSearchKeyword = '';
+        currentFilters = { category: '', nature: '', func: '', year: '', kingdom: '', klass: '' };
+
+        // Update sidebar active state
+        document.querySelectorAll('.sidebar-item[data-source]').forEach(m => m.classList.remove('active'));
+        const sideItem = document.querySelector('.sidebar-item[data-source="' + source + '"]');
+        if (sideItem) sideItem.classList.add('active');
+
+        // Update browse page UI
+        const titles = { yaoshi: '药食同源物质', tianjia: '食品添加剂', xinwu: '新食品原料', compound: 'FooDB数据库' };
+        document.getElementById('browsePageTitle').textContent = titles[source];
+
+        document.getElementById('yaoshiFilters').style.display = source === 'yaoshi' ? 'block' : 'none';
+        document.getElementById('tianjiaFilters').style.display = source === 'tianjia' ? 'block' : 'none';
+        document.getElementById('xinwuFilters').style.display = source === 'xinwu' ? 'block' : 'none';
+        document.getElementById('compoundFilters').style.display = source === 'compound' ? 'block' : 'none';
+
+        // Show browse page and populate with data
+        switchPage('browsePage');
+        initFilterTags(source);
+        loadBrowseData();
+
+        // Open the detail modal for the specific substance
+        setTimeout(() => {
+            showDetail(item);
+        }, 300);
+    }
+
+    // ==================== 设置弹窗 ====================
+    function getApiKey() {
+        return localStorage.getItem('deepseek_api_key') || '';
+    }
+    function setApiKey(key) {
+        localStorage.setItem('deepseek_api_key', key);
+    }
+    function saveApiKey() {
+        const key = document.getElementById('apiKeyInput').value.trim();
+        const status = document.getElementById('apiKeyStatus');
+        if (!key) {
+            setApiKey('');
+            status.textContent = 'API Key 已清除';
+            status.style.color = 'var(--text-tertiary)';
+            return;
+        }
+        if (!key.startsWith('sk-')) {
+            status.textContent = '⚠ API Key 格式不正确，应以 sk- 开头';
+            status.style.color = '#E11D48';
+            return;
+        }
+        setApiKey(key);
+        status.textContent = '✅ API Key 已保存';
+        status.style.color = '#0D9488';
+        setTimeout(() => { status.textContent = ''; }, 2000);
+    }
+    function openSettings() {
+        document.getElementById('settingsModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+        const savedKey = getApiKey();
+        const input = document.getElementById('apiKeyInput');
+        input.value = savedKey;
+        document.getElementById('apiKeyStatus').textContent = '';
+        updateSettingsUI();
+        // Ensure input gets focus and paste works reliably
+        setTimeout(function() {
+            input.focus();
+            input.select();
+        }, 150);
+    }
+    function closeSettings() {
+        document.getElementById('settingsModal').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    function updateSettingsUI() {
+        const isDark = document.body.classList.contains('dark');
+        document.getElementById('optLight').classList.toggle('active', !isDark);
+        document.getElementById('optDark').classList.toggle('active', isDark);
+    }
+    function setBrightness(mode) {
+        if (mode === 'dark') {
+            document.body.classList.add('dark');
+            localStorage.setItem('db_dark_mode', 'true');
+        } else {
+            document.body.classList.remove('dark');
+            localStorage.setItem('db_dark_mode', 'false');
+        }
+        updateSettingsUI();
+    }
+    // Close settings on overlay click
+    document.getElementById('settingsModal').addEventListener('click', function(e) {
+        if (e.target === this) closeSettings();
+    });
+
+    // ==================== 深色模式初始化 ====================
+    function initDarkMode() {
+        const saved = localStorage.getItem('db_dark_mode');
+        if (saved === 'true') {
+            document.body.classList.add('dark');
+        }
+    }
+
+    // ==================== 退出登录 ====================
+    function confirmLogout() {
+        showConfirmDialog('确定要退出登录吗？', function() {
+            handleLogout();
+        });
+    }
+
+    function handleLogout() {
+        sessionStorage.removeItem('db_logged_in');
+        document.getElementById('settingsModal').classList.remove('active');
+        document.body.style.overflow = '';
+        document.getElementById('loginOverlay').classList.remove('hidden');
+        document.getElementById('loginPass').value = '';
+        document.getElementById('loginBtn').classList.remove('loading');
+        document.getElementById('loginLoading').classList.remove('show');
+    }
+
+    // ==================== 密码可见性切换 ====================
+    function togglePassword() {
+        const input = document.getElementById('loginPass');
+        const btn = document.getElementById('togglePass');
+        if (input.type === 'password') {
+            input.type = 'text';
+            btn.textContent = 'Hide';
+        } else {
+            input.type = 'password';
+            btn.textContent = 'Show';
+        }
+    }
+
+    // ==================== 合规检测 ====================
+    function openCompliance() {
+        document.querySelectorAll('.sidebar-item[data-source]').forEach(m => m.classList.remove('active'));
+        switchPage('compliancePage');
+        // Clear previous results
+        document.getElementById('complianceResult').innerHTML = '';
+    }
+    function closeCompliance() {
+        switchPage('homePage');
+        document.getElementById('complianceResult').innerHTML = '';
+    }
+    function addComplianceRow() {
+        const row = document.createElement('div');
+        row.className = 'compliance-row';
+        row.innerHTML = '<button class="btn-remove" onclick="this.parentElement.remove()">×</button>' +
+            '<div class="field field-name"><label>物质名称</label><input type="text" placeholder="如：安赛蜜、苯甲酸钠..." class="comp-name"></div>' +
+            '<div class="field field-amount"><label>添加量</label><input type="number" placeholder="0.0" step="0.01" min="0" class="comp-amount"></div>' +
+            '<div class="field field-unit"><label>单位</label><select class="comp-unit"><option>g/kg</option><option>mg/kg</option></select></div>';
+        document.getElementById('complianceRows').appendChild(row);
+    }
+    function runComplianceCheck() {
+        const rows = document.querySelectorAll('#complianceRows .compliance-row');
+        const results = [];
+        const tianjia = getCachedData('tianjia');
+
+        rows.forEach(row => {
+            const name = row.querySelector('.comp-name').value.trim();
+            const amount = parseFloat(row.querySelector('.comp-amount').value);
+            const unit = row.querySelector('.comp-unit').value;
+
+            if (!name || isNaN(amount)) return;
+
+            // Convert to g/kg for comparison
+            let amountGkg = amount;
+            if (unit === 'mg/kg') amountGkg = amount / 1000;
+
+            // Find matching substance
+            const matches = tianjia.filter(d =>
+                d.name.includes(name) || name.includes(d.name) ||
+                (d.name_en && d.name_en.toLowerCase().includes(name.toLowerCase()))
+            );
+
+            if (matches.length === 0) {
+                results.push({ name, amount, unit, status: 'not-found', max: null, match: null });
+            } else {
+                // Get the strictest limit across all food categories
+                let minMax = Infinity;
+                let bestMatch = null;
+                for (const m of matches) {
+                    const maxVal = parseFloat(m.max_usage);
+                    if (!isNaN(maxVal) && maxVal < minMax) {
+                        minMax = maxVal;
+                        bestMatch = m;
+                    }
+                }
+                if (bestMatch && isFinite(minMax)) {
+                    const exceeded = amountGkg > minMax;
+                    results.push({
+                        name, amount, unit, match: bestMatch,
+                        max: minMax, maxUnit: bestMatch.unit || 'g/kg',
+                        status: exceeded ? 'fail' : 'pass',
+                        usageRatio: (amountGkg / minMax * 100).toFixed(1)
+                    });
+                } else {
+                    results.push({ name, amount, unit, status: 'not-found', max: null, match: null });
+                }
+            }
+        });
+
+        displayComplianceResults(results);
+    }
+    function displayComplianceResults(results) {
+        const container = document.getElementById('complianceResult');
+        if (results.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-tertiary);text-align:center;">请输入至少一种物质及添加量</p>';
+            return;
+        }
+        const passCount = results.filter(r => r.status === 'pass').length;
+        const failCount = results.filter(r => r.status === 'fail').length;
+        const nfCount = results.filter(r => r.status === 'not-found').length;
+
+        let html = '<div class="compliance-summary">';
+        if (failCount > 0) html += '⚠️ ' + failCount + ' 项超标  ';
+        if (passCount > 0) html += '✅ ' + passCount + ' 项合规  ';
+        if (nfCount > 0) html += '🔍 ' + nfCount + ' 项未匹配';
+        html += '</div>';
+
+        for (const r of results) {
+            let icon, cls;
+            if (r.status === 'pass') { icon = '✅'; cls = 'pass'; }
+            else if (r.status === 'fail') { icon = '⚠️'; cls = 'fail'; }
+            else { icon = '🔍'; cls = 'not-found'; }
+
+            html += '<div class="compliance-result-item ' + cls + '">';
+            html += '<span class="result-icon">' + icon + '</span>';
+            html += '<span style="flex:1;"><strong>' + r.name + '</strong> ' + r.amount + ' ' + r.unit;
+            if (r.status === 'pass') {
+                html += ' ≤ 限量 ' + r.max + ' ' + r.maxUnit + ' (' + r.usageRatio + '%)';
+            } else if (r.status === 'fail') {
+                html += ' > 限量 ' + r.max + ' ' + r.maxUnit + ' (' + r.usageRatio + '% ⚠️超标)';
+            } else {
+                html += ' — 未在数据库中匹配到该物质';
+            }
+            if (r.match && r.match.food_cat_name) {
+                html += '<br><small style="opacity:0.7;">参考食品类别：' + r.match.food_cat_name + '</small>';
+            }
+            html += '</span></div>';
+        }
+        container.innerHTML = html;
+    }
+
+    // ==================== 搜索高亮 ====================
+    function highlightText(text, keyword) {
+        if (!keyword || !text) return text || '-';
+        const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp('(' + escaped + ')', 'gi');
+        return String(text).replace(regex, '<span class="highlight">$1</span>');
+    }
+
+    // ==================== 统计数字动态更新 ====================
+    function updateAllStats() {
+        const yaoshi = getCachedData('yaoshi');
+        const tianjia = getCachedData('tianjia');
+        const xinwu = getCachedData('xinwu');
+        const compound = getCachedData('compound');
+        if (yaoshi.length + tianjia.length + xinwu.length + compound.length > 0) {
+            setText('menuCountYaoshi', yaoshi.length);
+            setText('menuCountTianjia', tianjia.length);
+            setText('menuCountXinwu', xinwu.length);
+            setText('menuCountCompound', compound.length || '—');
+        }
+    }
+    function setText(id, text) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    }
+
+    // ==================== 弹窗事件监听 ====================
+    function setupModalListeners() {
+        const overlay = document.getElementById('modalOverlay');
+        if (!overlay) return;
+        // 点击遮罩关闭
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) closeModal();
+        });
+    }
+    
+    // ==================== 页面切换 ====================
+    function switchPage(pageId) {
+        document.querySelectorAll('.page-state').forEach(p => p.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        currentPage = pageId.replace('Page', '');
+    }
+    
+    function goHome() {
+        switchPage('homePage');
+        document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+        // Clear sidebar active state
+        document.querySelectorAll('.sidebar-item[data-source]').forEach(item => {
+            item.classList.remove('active');
+        });
+    }
+    
+    // ==================== 搜索功能 ====================
+    function quickSearch(keyword) {
+        performSearch(keyword);
+    }
+
+    async function performSearch(keyword) {
+        if (!keyword) {
+            keyword = document.getElementById('homeSearchInput')?.value?.trim();
+        }
+        if (!keyword) return;
+
+        currentSearchKeyword = keyword;
+
+        // 显示加载状态
+        const grid = document.getElementById('searchResultsGrid');
+        grid.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>搜索中...</p></div>';
+        switchPage('resultPage');
+
+        // 并行加载所有数据
+        await Promise.all([
+            loadData('yaoshi'),
+            loadData('tianjia'),
+            loadData('xinwu'),
+            loadData('compound')
+        ]);
+
+        const results = [
+            ...searchInData(getCachedData('yaoshi'), 'yaoshi', keyword),
+            ...searchInData(getCachedData('tianjia'), 'tianjia', keyword),
+            ...searchInData(getCachedData('xinwu'), 'xinwu', keyword),
+            ...searchInData(getCachedData('compound'), 'compound', keyword)
+        ];
+
+        allResults = results;
+        displaySearchResults(results);
+    }
+    
+    function searchInData(data, source, keyword) {
+        const k = keyword.toLowerCase();
+        return data.filter(item => {
+            if (source === 'yaoshi') {
+                return item.name.includes(keyword) || 
+                       (item.alias && item.alias.includes(keyword)) ||
+                       (item.latin && item.latin.toLowerCase().includes(k)) ||
+                       (item.category && item.category.includes(keyword)) ||
+                       (item.efficacy && item.efficacy.includes(keyword)) ||
+                       (item.origin && item.origin.includes(keyword));
+            } else if (source === 'tianjia') {
+                return item.name.includes(keyword) ||
+                       (item.name_en && item.name_en.toLowerCase().includes(k)) ||
+                       (item.ins && item.ins.includes(keyword)) ||
+                       (item.func && item.func.includes(keyword)) ||
+                       (item.cns && item.cns.includes(keyword));
+            } else if (source === 'xinwu') {
+                return item.name.includes(keyword) ||
+                       (item.category && item.category.includes(keyword)) ||
+                       (item.source && item.source.includes(keyword)) ||
+                       (item.notes && item.notes.includes(keyword));
+            } else {
+                return item.name.includes(keyword) ||
+                       (item.name_zh && item.name_zh.includes(keyword)) ||
+                       (item.description_zh && item.description_zh.includes(keyword)) ||
+                       (item.klass_zh && item.klass_zh.includes(keyword)) ||
+                       (item.superklass_zh && item.superklass_zh.includes(keyword)) ||
+                       (item.kingdom_zh && item.kingdom_zh.includes(keyword)) ||
+                       (item.cas_number && item.cas_number.includes(keyword)) ||
+                       (item.moldb_iupac && item.moldb_iupac.includes(keyword));
+            }
+        }).map(item => ({...item, _source: source}));
+    }
+    
+    function displaySearchResults(results) {
+        const grid = document.getElementById('searchResultsGrid');
+        const noResults = document.getElementById('searchNoResults');
+        const countEl = document.getElementById('searchResultCount');
+        
+        if (results.length === 0) {
+            grid.innerHTML = '';
+            noResults.style.display = 'block';
+            countEl.innerHTML = '';
+        } else {
+            noResults.style.display = 'none';
+            countEl.innerHTML = '<span class="count-num">' + results.length + '条</span>';
+            grid.innerHTML = results.map(item => createCardHTML(item)).join('');
+            bindCardClick(grid, results);
+        }
+    }
+    
+    // ==================== 数据库浏览 ====================
+    async function browseDatabase(source) {
+        currentDatabase = source;
+        currentSearchKeyword = '';
+        currentFilters = { category: '', nature: '', func: '', year: '', kingdom: '', klass: '' };
+
+        // 更新侧边栏活跃状态
+        document.querySelectorAll('.sidebar-item[data-source]').forEach(m => m.classList.remove('active'));
+        const sideItem = document.querySelector('.sidebar-item[data-source="' + source + '"]');
+        if (sideItem) sideItem.classList.add('active');
+
+        // 更新页面标题
+        const titles = { yaoshi: '药食同源物质', tianjia: '食品添加剂', xinwu: '新食品原料', compound: 'FooDB数据库' };
+        document.getElementById('browsePageTitle').textContent = titles[source];
+
+        // 显示/隐藏筛选器
+        document.getElementById('yaoshiFilters').style.display = source === 'yaoshi' ? 'block' : 'none';
+        document.getElementById('tianjiaFilters').style.display = source === 'tianjia' ? 'block' : 'none';
+        document.getElementById('xinwuFilters').style.display = source === 'xinwu' ? 'block' : 'none';
+        document.getElementById('compoundFilters').style.display = source === 'compound' ? 'block' : 'none';
+
+        // 显示加载状态
+        showBrowseLoading();
+        switchPage('browsePage');
+
+        // 加载数据
+        await loadData(source);
+        initFilterTags(source);
+        loadBrowseData();
+    }
+
+    function initFilterTags(source) {
+        const data = getCachedData(source);
+        if (!data.length) return;
+        if (source === 'yaoshi') {
+            initTags('yaoshiCategoryTags', [...new Set(data.map(d => d.category))].filter(Boolean), 'category');
+            initTags('yaoshiNatureTags', [...new Set(data.map(d => {
+                const nf = d.nature_flavor || '';
+                return nf.split('，')[0] || nf.split(',')[0];
+            }))].filter(Boolean), 'nature');
+        } else if (source === 'tianjia') {
+            initTags('tianjiaFuncTags', [...new Set(data.map(d => d.func))].filter(Boolean), 'func');
+        } else if (source === 'xinwu') {
+            initTags('xinwuCategoryTags', [...new Set(data.map(d => d.category))].filter(Boolean), 'category');
+            initTags('xinwuYearTags', [...new Set(data.map(d => String(d.year)))].sort((a,b) => b-a).map(String), 'year');
+        } else if (source === 'compound') {
+            initTags('compoundKingdomTags', [...new Set(data.map(d => d.kingdom_zh))].filter(Boolean), 'kingdom');
+            initTags('compoundKlassTags', [...new Set(data.map(d => d.klass_zh))].filter(Boolean).sort(), 'klass');
+        }
+    }
+    
+    function initTags(containerId, values, filterType) {
+        const container = document.getElementById(containerId);
+
+        let html = '<span class="filter-tag active" data-filter="' + filterType + '" data-value="">全部</span>';
+        for (const v of values) {
+            html += '<span class="filter-tag" data-filter="' + filterType + '" data-value="' + v + '">' + v + '</span>';
+        }
+        container.innerHTML = html;
+    }
+    
+    function setupFilterListeners() {
+        document.querySelectorAll('.filter-tags').forEach(container => {
+            container.addEventListener('click', (e) => {
+                const tag = e.target.closest('.filter-tag');
+                if (!tag) return;
+                
+                const filter = tag.dataset.filter;
+                const value = tag.dataset.value;
+                
+                // 更新active状态
+                container.querySelectorAll('.filter-tag').forEach(t => t.classList.remove('active'));
+                tag.classList.add('active');
+                
+                // 更新筛选条件
+                currentFilters[filter] = value;
+                loadBrowseData();
+            });
+        });
+    }
+    
+    function loadBrowseData() {
+        let data = getCachedData(currentDatabase);
+
+        if (!data.length) return;
+
+        // 应用筛选
+        if (currentDatabase === 'yaoshi') {
+            if (currentFilters.category) {
+                data = data.filter(d => d.category === currentFilters.category);
+            }
+            if (currentFilters.nature) {
+                data = data.filter(d => {
+                    const nf = d.nature_flavor || '';
+                    return nf.includes(currentFilters.nature);
+                });
+            }
+        } else if (currentDatabase === 'tianjia') {
+            if (currentFilters.func) {
+                data = data.filter(d => d.func === currentFilters.func);
+            }
+        } else if (currentDatabase === 'xinwu') {
+            if (currentFilters.category) {
+                data = data.filter(d => d.category === currentFilters.category);
+            }
+            if (currentFilters.year) {
+                data = data.filter(d => String(d.year) === currentFilters.year);
+            }
+        } else if (currentDatabase === 'compound') {
+            if (currentFilters.kingdom) {
+                data = data.filter(d => d.kingdom_zh === currentFilters.kingdom);
+            }
+            if (currentFilters.klass) {
+                data = data.filter(d => d.klass_zh === currentFilters.klass);
+            }
+        }
+
+        // 应用浏览页搜索
+        if (currentSearchKeyword) {
+            data = searchInData(
+                getCachedData(currentDatabase),
+                currentDatabase,
+                currentSearchKeyword
+            );
+        }
+
+        allResults = data;
+        displayBrowseResults(data);
+    }
+    
+    function showBrowseLoading() {
+        const grid = document.getElementById('browseResultsGrid');
+        if (grid) {
+            grid.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>加载中...</p></div>';
+        }
+    }
+
+    function performBrowseSearch() {
+        const keyword = document.getElementById('browseSearchInput').value.trim();
+        currentSearchKeyword = keyword;
+        loadBrowseData();
+    }
+
+    function displayBrowseResults(results) {
+        const grid = document.getElementById('browseResultsGrid');
+        const noResults = document.getElementById('browseNoResults');
+        
+        if (results.length === 0) {
+            grid.innerHTML = '';
+            noResults.style.display = 'block';
+        } else {
+            noResults.style.display = 'none';
+            grid.innerHTML = results.map(item => createCardHTML(item)).join('');
+            bindCardClick(grid, results);
+        }
+    }
+    
+    // ==================== 卡片渲染 ====================
+    function createCardHTML(item) {
+        const source = item._source;
+        const kw = currentSearchKeyword;
+        const sourceTag = source === 'yaoshi' ? '药食同源' :
+                         source === 'tianjia' ? '食品添加剂' :
+                         source === 'xinwu' ? '新食品原料' : 'FooDB数据库';
+
+        let title = item.name;
+        let subtitle = '';
+        let content = '';
+
+        if (source === 'yaoshi') {
+            subtitle = item.latin || item.alias || '';
+            content = item.efficacy || item.category || '';
+        } else if (source === 'tianjia') {
+            subtitle = item.ins ? 'INS: ' + item.ins : '';
+            content = item.func || '';
+        } else if (source === 'xinwu') {
+            subtitle = item.category || '';
+            content = item.source || '';
+        } else {
+            subtitle = (item.klass_zh || '') + (item.subklass_zh ? ' · ' + item.subklass_zh : '');
+            content = item.description_zh ? item.description_zh.substring(0, 120) : (item.moldb_iupac || '');
+        }
+
+        const nameZhHTML = (source === 'compound' && item.name_zh)
+            ? '<div class="card-title-zh">' + highlightText(item.name_zh, kw) + '</div>' : '';
+
+        return '<div class="result-card" data-theme="' + source + '">' +
+            '<span class="card-source-tag">' + sourceTag + '</span>' +
+            '<div class="card-title">' + highlightText(title, kw) + '</div>' +
+            nameZhHTML +
+            '<div class="card-subtitle">' + highlightText(subtitle, kw) + '</div>' +
+            '<div class="card-content">' + highlightText(content, kw) + '</div>' +
+            '</div>';
+    }
+    
+    function bindCardClick(grid, results) {
+        grid.querySelectorAll('.result-card').forEach((card, index) => {
+            card.addEventListener('click', () => showDetail(results[index]));
+        });
+    }
+    
+    // ==================== 弹窗 ====================
+    function showDetail(item) {
+        const overlay = document.getElementById('modalOverlay');
+        const modal = overlay.querySelector('.modal');
+        const title = document.getElementById('modalTitle');
+        const body = document.getElementById('modalBody');
+
+        title.textContent = item.name || '';
+        overlay.setAttribute('data-theme', item._source);
+
+        switch(item._source) {
+            case 'yaoshi': body.innerHTML = renderYaoshiDetail(item); break;
+            case 'tianjia': body.innerHTML = renderTianjiaDetail(item); break;
+            case 'xinwu': body.innerHTML = renderXinwuDetail(item); break;
+            case 'compound': body.innerHTML = renderCompoundDetail(item); break;
+        }
+
+        // Reset to start position before showing
+        modal.style.animation = 'none';
+        modal.style.transform = 'translateY(40px) scale(0.92)';
+        modal.style.opacity = '0';
+
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+
+        // Trigger animation in next frame
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                modal.style.animation = 'modalSpring 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards';
+            });
+        });
+    }
+    
+    function closeModal() {
+        const overlay = document.getElementById('modalOverlay');
+        const modal = overlay.querySelector('.modal');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+        // Reset inline styles so JS can set them again next time
+        if (modal) {
+            modal.style.animation = '';
+            modal.style.transform = '';
+            modal.style.opacity = '';
+        }
+    }
+    
+    function renderYaoshiDetail(item) {
+        const badgeText = '药食同源物质';
+
+        return '<div class="modal-source-badge">' + badgeText + '</div>' +
+            '<table class="detail-table">' +
+            detailRow('名称', item.name) +
+            detailRow('别名', item.alias) +
+            detailRow('拉丁学名', item.latin) +
+            '<tr><td colspan="2"><div class="detail-divider"></div></td></tr>' +
+            detailRow('分类', item.category) +
+            detailRow('产地', item.origin) +
+            detailRow('性味', item.nature_flavor) +
+            detailRow('归经', item.meridian) +
+            '<tr><td colspan="2"><div class="detail-divider"></div></td></tr>' +
+            detailRow('功效', item.efficacy) +
+            detailRow('功效成分', item.active_components) +
+            detailRow('药典用量', item.dosage) +
+            detailRow('使用注意', item.precautions) +
+            detailRow('食疗应用', item.dietary_uses) +
+            '<tr><td colspan="2"><div class="detail-divider"></div></td></tr>' +
+            detailRow('形态特征', item.morphology) +
+            detailRow('批次', item.batch) +
+            detailRow('药典来源', item.pharma_source) +
+            detailRow('炮制', item.processing) +
+            detailRow('含量测定', item.assay) +
+            detailRow('储藏', item.storage) +
+            '</table>';
+    }
+    
+    function renderTianjiaDetail(item) {
+        const badgeText = '食品添加剂';
+
+        return '<div class="modal-source-badge">' + badgeText + '</div>' +
+            '<table class="detail-table">' +
+            detailRow('名称', item.name) +
+            detailRow('INS号', item.ins) +
+            detailRow('英文名', item.name_en) +
+            '<tr><td colspan="2"><div class="detail-divider"></div></td></tr>' +
+            detailRow('功能类别', item.func) +
+            detailRow('食品分类号', item.food_cat_no) +
+            detailRow('食品分类名', item.food_cat_name) +
+            '<tr><td colspan="2"><div class="detail-divider"></div></td></tr>' +
+            detailRow('最大使用量', (item.max_usage || '-') + (item.unit || '')) +
+            detailRow('CNS号', item.cns) +
+            detailRow('备注', item.notes) +
+            detailRow('标准', item.standard) +
+            '</table>';
+    }
+    
+    function renderXinwuDetail(item) {
+        const badgeText = '新食品原料';
+
+        let html = '<div class="modal-source-badge">' + badgeText + '</div>' +
+            '<table class="detail-table">' +
+            detailRow('名称', item.name);
+
+        if (item.name_en) html += detailRow('英文名称/拉丁学名', item.name_en);
+        
+        html += detailRow('分类', item.category) +
+            detailRow('公告号', item.announcement) +
+            detailRow('年份', item.year);
+
+        if (item.basic_info) {
+            html += '<tr><td colspan="2"><div class="detail-divider"></div></td></tr>' +
+                detailRow('基本信息', item.basic_info);
+        }
+
+        if (item.process) {
+            html += detailRow('生产工艺', item.process);
+        }
+
+        if (item.appearance) {
+            html += detailRow('性状', item.appearance);
+        }
+
+        if (item.dosage) {
+            html += '<tr><td colspan="2"><div class="detail-divider"></div></td></tr>' +
+                detailRow('推荐食用量', item.dosage);
+        }
+
+        if (item.quality) {
+            html += detailRow('质量要求', item.quality);
+        }
+
+        if (item.contraindications) {
+            html += detailRow('注意事项', item.contraindications);
+        }
+
+        if (item.source || item.notes) {
+            html += '<tr><td colspan="2"><div class="detail-divider"></div></td></tr>' +
+                detailRow('来源', item.source) +
+                detailRow('备注', item.notes);
+        }
+
+        html += '</table>';
+        return html;
+    }
+    
+    function renderCompoundDetail(item) {
+        let html = '<div class="modal-source-badge">FooDB数据库</div>' +
+            '<table class="detail-table">' +
+            detailRow('英文名', item.name) +
+            detailRow('中文名', item.name_zh || '') +
+            detailRow('CAS号', item.cas_number) +
+            detailRow('FooDB ID', item.public_id) +
+            '<tr><td colspan="2"><div class="detail-divider"></div></td></tr>' +
+            detailRow('分类', [item.kingdom_zh, item.superklass_zh, item.klass_zh, item.subklass_zh].filter(Boolean).join(' > ')) +
+            detailRow('分子量', item.moldb_mono_mass || '') +
+            '<tr><td colspan="2"><div class="detail-divider"></div></td></tr>' +
+            detailRow('描述', item.description_zh || '') +
+            '</table>';
+        return html;
+    }
+
+    function detailRow(label, value) {
+        const v = value || '-';
+        return '<tr><td class="label">' + label + '</td><td class="value">' + v + '</td></tr>';
+    }
+    
+    // 键盘事件
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const overlay = document.getElementById('modalOverlay');
+            if (overlay && overlay.classList.contains('active')) {
+                closeModal();
+            }
+        }
+    });
+
+    // ========== 登录逻辑 ==========
+    const VALID_ACCOUNTS = {
+        'kyzx001': '1903',
+        'kyzx002': '1903',
+        'kyzx003': '1903'
+    };
+
+    function handleLogin() {
+        const user = document.getElementById('loginUser').value.trim();
+        const pass = document.getElementById('loginPass').value;
+        const errEl = document.getElementById('loginError');
+
+        if (!user || !pass) {
+            errEl.textContent = '请输入账号和密码';
+            return;
+        }
+        if (VALID_ACCOUNTS[user] && VALID_ACCOUNTS[user] === pass) {
+            errEl.textContent = '';
+            document.getElementById('loginBtn').classList.add('loading');
+            document.getElementById('loginBtn').textContent = '登 录';
+            document.getElementById('loginLoading').classList.add('show');
+            setTimeout(() => {
+                document.getElementById('loginOverlay').classList.add('hidden');
+                sessionStorage.setItem('db_logged_in', user);
+            }, 900);
+        } else {
+            errEl.textContent = '账号或密码错误';
+            document.getElementById('loginPass').value = '';
+        }
+    }
+
+    // 回车登录
+    document.getElementById('loginPass').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleLogin();
+    });
+    document.getElementById('loginUser').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('loginPass').focus();
+    });
+
+    // 会话内记住登录状态
+    if (sessionStorage.getItem('db_logged_in')) {
+        document.getElementById('loginOverlay').classList.add('hidden');
+    }
+    
+    init();
+    </script>
+</body>
+</html>
